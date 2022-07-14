@@ -1,6 +1,6 @@
 pub use db_instance::DbInstance;
 
-pub use db_table::{DbTableAttributes, DbTableAttributesSnapshot, DbTableInner};
+pub use db_table::{DbTable, DbTableAttributes, DbTableAttributesSnapshot, DbTableInner};
 
 pub use db_partition::{DbPartition, UpdatePartitionReadMoment};
 
