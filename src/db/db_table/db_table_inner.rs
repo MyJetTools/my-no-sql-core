@@ -184,6 +184,8 @@ impl DbTableInner {
             self.table_size -= removed_db_row.data.len();
         }
 
+        self.last_update_time = DateTimeAsMicroseconds::now();
+
         removed_db_row
     }
 
@@ -199,7 +201,8 @@ impl DbTableInner {
         let result = db_partition.insert_row(db_row.clone(), Some(update_write_access.date_time));
 
         if result {
-            self.table_size -= db_row.data.len();
+            self.table_size += db_row.data.len();
+            self.last_update_time = DateTimeAsMicroseconds::now();
         }
 
         result
@@ -232,6 +235,7 @@ impl DbTableInner {
             }
         }
 
+        self.last_update_time = DateTimeAsMicroseconds::now();
         result
     }
 
@@ -244,6 +248,8 @@ impl DbTableInner {
         if let Some(removed_partition) = removed_partition {
             self.table_size -= removed_partition.get_content_size();
         }
+
+        self.last_update_time = DateTimeAsMicroseconds::now();
     }
 }
 
@@ -263,6 +269,7 @@ impl DbTableInner {
             let db_partition = self.partitions.get_mut(partition_key)?;
 
             let removed_row = db_partition.remove_row(row_key, Some(now.date_time))?;
+            self.last_update_time = DateTimeAsMicroseconds::now();
             self.table_size -= removed_row.data.len();
 
             (removed_row, db_partition.is_empty())
@@ -291,6 +298,7 @@ impl DbTableInner {
                 for removed in removed_rows {
                     self.table_size -= removed.data.len();
                 }
+                self.last_update_time = DateTimeAsMicroseconds::now();
             }
 
             (removed_rows, db_partition.is_empty())
@@ -305,10 +313,7 @@ impl DbTableInner {
         return Some((removed_rows, partition_is_empty));
     }
 
-    pub fn gc_and_keep_max_partitions_amount(
-        &mut self,
-        max_partitions_amount: usize,
-    ) -> Option<HashMap<String, DbPartition>> {
+    fn get_partitions_to_gc(&self, max_partitions_amount: usize) -> Option<BTreeMap<i64, String>> {
         if self.partitions.len() <= max_partitions_amount {
             return None;
         }
@@ -318,12 +323,17 @@ impl DbTableInner {
         for (partition_key, partition) in &self.partitions {
             let mut last_read_access = partition.get_last_access().unix_microseconds;
 
-            while partitions_to_gc.contains_key(&last_read_access) {
-                last_read_access += 1;
-            }
-
             partitions_to_gc.insert(last_read_access, partition_key.to_string());
         }
+
+        Some(partitions_to_gc)
+    }
+
+    pub fn gc_and_keep_max_partitions_amount(
+        &mut self,
+        max_partitions_amount: usize,
+    ) -> Option<HashMap<String, DbPartition>> {
+        let partitions_to_gc = self.get_partitions_to_gc(max_partitions_amount)?;
 
         let mut result = HashMap::new();
 
@@ -335,6 +345,7 @@ impl DbTableInner {
             if let Some(partition) = self.partitions.remove(partition_key.as_str()) {
                 self.table_size -= partition.get_content_size();
                 result.insert(partition_key, partition);
+                self.last_update_time = DateTimeAsMicroseconds::now();
             }
         }
 
@@ -347,6 +358,7 @@ impl DbTableInner {
 
         if let Some(removed_partition) = &removed_partition {
             self.table_size -= removed_partition.get_content_size();
+            self.last_update_time = DateTimeAsMicroseconds::now();
         }
 
         removed_partition
@@ -361,6 +373,7 @@ impl DbTableInner {
 
         std::mem::swap(&mut partitions, &mut self.partitions);
         self.table_size = 0;
+        self.last_update_time = DateTimeAsMicroseconds::now();
         Some(partitions)
     }
 }
