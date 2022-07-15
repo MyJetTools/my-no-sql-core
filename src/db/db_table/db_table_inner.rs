@@ -13,21 +13,13 @@ use crate::{
 
 pub type TPartitions = BTreeMap<String, DbPartition>;
 
-pub struct CalculatedMetrics {
-    pub data_size: usize,
-    pub records_count: usize,
-    pub expiration_index_records_count: usize,
-}
-
 pub struct DbTableInner {
     pub name: String,
     pub partitions: TPartitions,
-
     pub created: DateTimeAsMicroseconds,
-
     pub last_read_time: AtomicDateTimeAsMicroseconds,
-
-    pub last_persist_time: DateTimeAsMicroseconds,
+    pub last_update_time: DateTimeAsMicroseconds,
+    table_size: usize,
 }
 
 impl DbTableInner {
@@ -35,10 +27,10 @@ impl DbTableInner {
         Self {
             name,
             partitions: BTreeMap::new(),
-
             created,
             last_read_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
-            last_persist_time: DateTimeAsMicroseconds::now(),
+            last_update_time: DateTimeAsMicroseconds::now(),
+            table_size: 0,
         }
     }
 
@@ -74,21 +66,8 @@ impl DbTableInner {
         self.partitions.len()
     }
 
-    pub fn get_calculated_metrics(&self) -> CalculatedMetrics {
-        let mut result = CalculatedMetrics {
-            data_size: 0,
-            expiration_index_records_count: 0,
-            records_count: 0,
-        };
-
-        for db_partition in self.partitions.values() {
-            result.data_size += db_partition.get_content_size();
-            result.records_count += db_partition.get_rows_amount();
-            result.expiration_index_records_count +=
-                db_partition.get_expiration_index_rows_amount();
-        }
-
-        result
+    pub fn get_last_update_time(&self) -> DateTimeAsMicroseconds {
+        self.last_update_time
     }
 
     pub fn get_all_rows<'s>(&'s self) -> Vec<&Arc<DbRow>> {
@@ -133,6 +112,10 @@ impl DbTableInner {
         result
     }
 
+    pub fn get_table_size(&self) -> usize {
+        self.table_size
+    }
+
     pub fn get_partition_as_json_array(&self, partition_key: &str) -> Option<JsonArrayWriter> {
         let mut json_array_writer = JsonArrayWriter::new();
 
@@ -171,10 +154,6 @@ impl DbTableInner {
 
         result
     }
-
-    pub fn update_last_persist_time(&mut self) {
-        self.last_persist_time = DateTimeAsMicroseconds::now();
-    }
 }
 
 /// Insert Operations
@@ -186,6 +165,7 @@ impl DbTableInner {
         db_row: &Arc<DbRow>,
         update_write_access: &JsonTimeStamp,
     ) -> Option<Arc<DbRow>> {
+        self.table_size += db_row.data.len();
         if !self.partitions.contains_key(&db_row.partition_key) {
             let mut db_partition = DbPartition::new();
             db_partition.insert_or_replace_row(db_row.clone(), Some(update_write_access.date_time));
@@ -197,7 +177,14 @@ impl DbTableInner {
         }
 
         let db_partition = self.partitions.get_mut(&db_row.partition_key).unwrap();
-        db_partition.insert_or_replace_row(db_row.clone(), Some(update_write_access.date_time))
+        let removed_db_row =
+            db_partition.insert_or_replace_row(db_row.clone(), Some(update_write_access.date_time));
+
+        if let Some(removed_db_row) = &removed_db_row {
+            self.table_size -= removed_db_row.data.len();
+        }
+
+        removed_db_row
     }
 
     #[inline]
@@ -209,7 +196,13 @@ impl DbTableInner {
 
         let db_partition = self.partitions.get_mut(&db_row.partition_key).unwrap();
 
-        db_partition.insert_row(db_row.clone(), Some(update_write_access.date_time))
+        let result = db_partition.insert_row(db_row.clone(), Some(update_write_access.date_time));
+
+        if result {
+            self.table_size -= db_row.data.len();
+        }
+
+        result
     }
 
     #[inline]
@@ -226,12 +219,31 @@ impl DbTableInner {
 
         let db_partition = self.partitions.get_mut(partition_key).unwrap();
 
-        db_partition.insert_or_replace_rows_bulk(db_rows, Some(update_write_access.date_time))
+        for itm in db_rows {
+            self.table_size += itm.data.len();
+        }
+
+        let result =
+            db_partition.insert_or_replace_rows_bulk(db_rows, Some(update_write_access.date_time));
+
+        if let Some(result) = &result {
+            for removed in result {
+                self.table_size -= removed.data.len();
+            }
+        }
+
+        result
     }
 
     #[inline]
     pub fn init_partition(&mut self, partition_key: String, db_partition: DbPartition) {
-        self.partitions.insert(partition_key, db_partition);
+        self.table_size += db_partition.get_content_size();
+
+        let removed_partition = self.partitions.insert(partition_key, db_partition);
+
+        if let Some(removed_partition) = removed_partition {
+            self.table_size -= removed_partition.get_content_size();
+        }
     }
 }
 
@@ -251,6 +263,7 @@ impl DbTableInner {
             let db_partition = self.partitions.get_mut(partition_key)?;
 
             let removed_row = db_partition.remove_row(row_key, Some(now.date_time))?;
+            self.table_size -= removed_row.data.len();
 
             (removed_row, db_partition.is_empty())
         };
@@ -273,6 +286,12 @@ impl DbTableInner {
             let db_partition = self.partitions.get_mut(partition_key)?;
 
             let removed_rows = db_partition.remove_rows_bulk(row_keys, Some(now));
+
+            if let Some(removed_rows) = &removed_rows {
+                for removed in removed_rows {
+                    self.table_size -= removed.data.len();
+                }
+            }
 
             (removed_rows, db_partition.is_empty())
         };
@@ -314,6 +333,7 @@ impl DbTableInner {
             }
 
             if let Some(partition) = self.partitions.remove(partition_key.as_str()) {
+                self.table_size -= partition.get_content_size();
                 result.insert(partition_key, partition);
             }
         }
@@ -324,6 +344,10 @@ impl DbTableInner {
     #[inline]
     pub fn remove_partition(&mut self, partition_key: &str) -> Option<DbPartition> {
         let removed_partition = self.partitions.remove(partition_key);
+
+        if let Some(removed_partition) = &removed_partition {
+            self.table_size -= removed_partition.get_content_size();
+        }
 
         removed_partition
     }
@@ -336,7 +360,7 @@ impl DbTableInner {
         let mut partitions = BTreeMap::new();
 
         std::mem::swap(&mut partitions, &mut self.partitions);
-
+        self.table_size = 0;
         Some(partitions)
     }
 }

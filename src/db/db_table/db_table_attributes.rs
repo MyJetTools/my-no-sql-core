@@ -1,18 +1,18 @@
 use std::sync::atomic::{AtomicBool, AtomicI32};
 
-use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 #[derive(Debug)]
 pub struct DbTableAttributes {
     persist: AtomicBool,
     max_partitions_amount: AtomicI32,
-    created: AtomicDateTimeAsMicroseconds,
+    created: DateTimeAsMicroseconds,
 }
 
 impl DbTableAttributes {
     pub fn create_default() -> Self {
         Self {
-            created: AtomicDateTimeAsMicroseconds::now(),
+            created: DateTimeAsMicroseconds::now(),
             persist: AtomicBool::new(true),
             max_partitions_amount: AtomicI32::new(0),
         }
@@ -44,7 +44,7 @@ impl DbTableAttributes {
     ) -> Self {
         Self {
             persist: AtomicBool::new(persist),
-            created: AtomicDateTimeAsMicroseconds::new(create.unix_microseconds),
+            created: DateTimeAsMicroseconds::new(create.unix_microseconds),
             max_partitions_amount: AtomicI32::new(max_partitions_into_atomic(
                 max_partitions_amount,
             )),
@@ -87,7 +87,7 @@ impl DbTableAttributes {
     pub fn get_max_partitions_amount(&self) -> Option<usize> {
         let result = self
             .max_partitions_amount
-            .load(std::sync::atomic::Ordering::SeqCst);
+            .load(std::sync::atomic::Ordering::Relaxed);
 
         if result < 0 {
             return None;
@@ -97,7 +97,7 @@ impl DbTableAttributes {
     }
 
     pub fn get_created(&self) -> DateTimeAsMicroseconds {
-        return self.created.as_date_time();
+        return self.created;
     }
 }
 
