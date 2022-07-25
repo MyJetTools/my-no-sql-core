@@ -66,6 +66,16 @@ impl DbTableInner {
         self.partitions.len()
     }
 
+    pub fn get_expiration_index_rows_amount(&self) -> usize {
+        let mut result = 0;
+
+        for db_partition in self.partitions.values() {
+            result += db_partition.get_expiration_index_rows_amount();
+        }
+
+        result
+    }
+
     pub fn get_last_update_time(&self) -> DateTimeAsMicroseconds {
         self.last_update_time
     }
