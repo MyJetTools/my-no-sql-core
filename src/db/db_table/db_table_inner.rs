@@ -331,7 +331,7 @@ impl DbTableInner {
         let mut partitions_to_gc = BTreeMap::new();
 
         for (partition_key, partition) in &self.partitions {
-            let mut last_read_access = partition.get_last_access().unix_microseconds;
+            let last_read_access = partition.get_last_access().unix_microseconds;
 
             partitions_to_gc.insert(last_read_access, partition_key.to_string());
         }
