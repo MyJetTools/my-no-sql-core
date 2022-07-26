@@ -19,7 +19,6 @@ pub struct DbTableInner {
     pub created: DateTimeAsMicroseconds,
     pub last_read_time: AtomicDateTimeAsMicroseconds,
     pub last_update_time: DateTimeAsMicroseconds,
-    table_size: usize,
 }
 
 impl DbTableInner {
@@ -30,7 +29,6 @@ impl DbTableInner {
             created,
             last_read_time: AtomicDateTimeAsMicroseconds::new(created.unix_microseconds),
             last_update_time: DateTimeAsMicroseconds::now(),
-            table_size: 0,
         }
     }
 
@@ -123,7 +121,11 @@ impl DbTableInner {
     }
 
     pub fn get_table_size(&self) -> usize {
-        self.table_size
+        let mut result = 0;
+        for db_partition in self.partitions.values() {
+            result += db_partition.get_content_size();
+        }
+        result
     }
 
     pub fn get_partition_as_json_array(&self, partition_key: &str) -> Option<JsonArrayWriter> {
@@ -175,7 +177,6 @@ impl DbTableInner {
         db_row: &Arc<DbRow>,
         update_write_access: &JsonTimeStamp,
     ) -> Option<Arc<DbRow>> {
-        self.table_size += db_row.data.len();
         if !self.partitions.contains_key(&db_row.partition_key) {
             let mut db_partition = DbPartition::new();
             db_partition.insert_or_replace_row(db_row.clone(), Some(update_write_access.date_time));
@@ -189,10 +190,6 @@ impl DbTableInner {
         let db_partition = self.partitions.get_mut(&db_row.partition_key).unwrap();
         let removed_db_row =
             db_partition.insert_or_replace_row(db_row.clone(), Some(update_write_access.date_time));
-
-        if let Some(removed_db_row) = &removed_db_row {
-            self.table_size -= removed_db_row.data.len();
-        }
 
         self.last_update_time = DateTimeAsMicroseconds::now();
 
@@ -211,7 +208,6 @@ impl DbTableInner {
         let result = db_partition.insert_row(db_row.clone(), Some(update_write_access.date_time));
 
         if result {
-            self.table_size += db_row.data.len();
             self.last_update_time = DateTimeAsMicroseconds::now();
         }
 
@@ -232,18 +228,8 @@ impl DbTableInner {
 
         let db_partition = self.partitions.get_mut(partition_key).unwrap();
 
-        for itm in db_rows {
-            self.table_size += itm.data.len();
-        }
-
         let result =
             db_partition.insert_or_replace_rows_bulk(db_rows, Some(update_write_access.date_time));
-
-        if let Some(result) = &result {
-            for removed in result {
-                self.table_size -= removed.data.len();
-            }
-        }
 
         self.last_update_time = DateTimeAsMicroseconds::now();
         result
@@ -251,14 +237,7 @@ impl DbTableInner {
 
     #[inline]
     pub fn init_partition(&mut self, partition_key: String, db_partition: DbPartition) {
-        self.table_size += db_partition.get_content_size();
-
-        let removed_partition = self.partitions.insert(partition_key, db_partition);
-
-        if let Some(removed_partition) = removed_partition {
-            self.table_size -= removed_partition.get_content_size();
-        }
-
+        self.partitions.insert(partition_key, db_partition);
         self.last_update_time = DateTimeAsMicroseconds::now();
     }
 }
@@ -280,7 +259,6 @@ impl DbTableInner {
 
             let removed_row = db_partition.remove_row(row_key, Some(now.date_time))?;
             self.last_update_time = DateTimeAsMicroseconds::now();
-            self.table_size -= removed_row.data.len();
 
             (removed_row, db_partition.is_empty())
         };
@@ -304,10 +282,7 @@ impl DbTableInner {
 
             let removed_rows = db_partition.remove_rows_bulk(row_keys, Some(now));
 
-            if let Some(removed_rows) = &removed_rows {
-                for removed in removed_rows {
-                    self.table_size -= removed.data.len();
-                }
+            if removed_rows.is_some() {
                 self.last_update_time = DateTimeAsMicroseconds::now();
             }
 
@@ -353,7 +328,6 @@ impl DbTableInner {
             }
 
             if let Some(partition) = self.partitions.remove(partition_key.as_str()) {
-                self.table_size -= partition.get_content_size();
                 result.insert(partition_key, partition);
                 self.last_update_time = DateTimeAsMicroseconds::now();
             }
@@ -366,8 +340,7 @@ impl DbTableInner {
     pub fn remove_partition(&mut self, partition_key: &str) -> Option<DbPartition> {
         let removed_partition = self.partitions.remove(partition_key);
 
-        if let Some(removed_partition) = &removed_partition {
-            self.table_size -= removed_partition.get_content_size();
+        if removed_partition.is_some() {
             self.last_update_time = DateTimeAsMicroseconds::now();
         }
 
@@ -382,7 +355,7 @@ impl DbTableInner {
         let mut partitions = BTreeMap::new();
 
         std::mem::swap(&mut partitions, &mut self.partitions);
-        self.table_size = 0;
+
         self.last_update_time = DateTimeAsMicroseconds::now();
         Some(partitions)
     }

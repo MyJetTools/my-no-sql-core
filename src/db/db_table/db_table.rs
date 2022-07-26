@@ -77,3 +77,90 @@ impl DbTable {
         result.into()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{db::DbTableInner, db_json_entity::JsonTimeStamp};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_insert_record() {
+        let now = DateTimeAsMicroseconds::now();
+        let table_inner = DbTableInner::new("test-table".to_string(), now);
+
+        let db_table = DbTable::new(
+            table_inner,
+            DbTableAttributesSnapshot {
+                persist: true,
+                max_partitions_amount: None,
+                created: now,
+            },
+        );
+
+        let mut inner = db_table.data.write().await;
+
+        let now = JsonTimeStamp::now();
+
+        let db_row = DbRow::new(
+            "partitionKey".to_string(),
+            "rowKey".to_string(),
+            vec![0u8, 1u8, 2u8],
+            None,
+            &now,
+        );
+
+        let db_row = Arc::new(db_row);
+
+        inner.insert_row(&db_row, &now);
+
+        assert_eq!(inner.get_table_size(), 3);
+        assert_eq!(inner.get_partitions_amount(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_insert_and_insert_or_replace() {
+        let now = DateTimeAsMicroseconds::now();
+        let table_inner = DbTableInner::new("test-table".to_string(), now);
+
+        let db_table = DbTable::new(
+            table_inner,
+            DbTableAttributesSnapshot {
+                persist: true,
+                max_partitions_amount: None,
+                created: now,
+            },
+        );
+
+        let mut inner = db_table.data.write().await;
+
+        let now = JsonTimeStamp::now();
+
+        let db_row = DbRow::new(
+            "partitionKey".to_string(),
+            "rowKey".to_string(),
+            vec![0u8, 1u8, 2u8],
+            None,
+            &now,
+        );
+
+        let db_row = Arc::new(db_row);
+
+        inner.insert_row(&db_row, &now);
+
+        let db_row = DbRow::new(
+            "partitionKey".to_string(),
+            "rowKey".to_string(),
+            vec![0u8, 1u8, 2u8, 3u8],
+            None,
+            &now,
+        );
+
+        let db_row = Arc::new(db_row);
+
+        inner.insert_or_replace_row(&db_row, &now);
+
+        assert_eq!(inner.get_table_size(), 4);
+        assert_eq!(inner.get_partitions_amount(), 1);
+    }
+}
