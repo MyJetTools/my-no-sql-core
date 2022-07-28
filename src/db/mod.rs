@@ -1,12 +1,9 @@
-pub use db_instance::DbInstance;
-
-pub use db_table::{DbTable, DbTableAttributes, DbTableAttributesSnapshot, DbTableInner};
+pub use db_table::{DbTable, DbTableAttributes};
 
 pub use db_partition::{DbPartition, UpdatePartitionReadMoment};
 
 pub use db_row::DbRow;
 
-mod db_instance;
 mod db_partition;
 pub mod db_snapshots;
 

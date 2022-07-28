@@ -81,7 +81,6 @@ impl DbPartition {
             return false;
         }
 
-        self.content_size += db_row.data.len();
         self.insert_or_replace_row(db_row, update_last_write_moment);
         return true;
     }
