@@ -20,6 +20,7 @@ pub struct DbTable {
     pub partitions: TPartitions,
     pub last_read_time: AtomicDateTimeAsMicroseconds,
     pub last_update_time: DateTimeAsMicroseconds,
+    #[cfg(feature = "main_node")]
     pub attributes: DbTableAttributes,
 }
 
@@ -30,6 +31,7 @@ impl DbTable {
             partitions: BTreeMap::new(),
             last_read_time: AtomicDateTimeAsMicroseconds::new(attributes.created.unix_microseconds),
             last_update_time: DateTimeAsMicroseconds::now(),
+            #[cfg(feature = "main_node")]
             attributes,
         }
     }
@@ -66,7 +68,7 @@ impl DbTable {
         self.partitions.len()
     }
 
-    #[cfg(feature = "expiration_index")]
+    #[cfg(feature = "main_node")]
     pub fn get_expiration_index_rows_amount(&self) -> usize {
         let mut result = 0;
 

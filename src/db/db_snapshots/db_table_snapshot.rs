@@ -3,11 +3,15 @@ use std::collections::BTreeMap;
 use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db::{DbTable, DbTableAttributes};
+use crate::db::DbTable;
+
+#[cfg(feature = "main_node")]
+use crate::db::DbTableAttributes;
 
 use super::DbPartitionSnapshot;
 
 pub struct DbTableSnapshot {
+    #[cfg(feature = "main_node")]
     pub attr: DbTableAttributes,
     pub last_update_time: DateTimeAsMicroseconds,
     pub by_partition: BTreeMap<String, DbPartitionSnapshot>,
@@ -22,6 +26,7 @@ impl DbTableSnapshot {
         }
 
         Self {
+            #[cfg(feature = "main_node")]
             attr: db_table.attributes.clone(),
             last_update_time,
             by_partition,
