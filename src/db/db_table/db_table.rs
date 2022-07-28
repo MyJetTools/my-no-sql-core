@@ -1,5 +1,5 @@
 use my_json::json_writer::JsonArrayWriter;
-use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
 
 use std::{
     collections::{btree_map::Values, BTreeMap, HashMap},
@@ -18,7 +18,7 @@ pub type TPartitions = BTreeMap<String, DbPartition>;
 pub struct DbTable {
     pub name: String,
     pub partitions: TPartitions,
-    pub last_read_time: DateTimeAsMicroseconds,
+    pub last_read_time: AtomicDateTimeAsMicroseconds,
     pub last_update_time: DateTimeAsMicroseconds,
     pub attributes: DbTableAttributes,
 }
@@ -28,7 +28,7 @@ impl DbTable {
         Self {
             name,
             partitions: BTreeMap::new(),
-            last_read_time: attributes.created,
+            last_read_time: AtomicDateTimeAsMicroseconds::new(attributes.created.unix_microseconds),
             last_update_time: DateTimeAsMicroseconds::now(),
             attributes,
         }
