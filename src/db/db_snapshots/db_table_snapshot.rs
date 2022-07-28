@@ -12,6 +12,7 @@ use super::DbPartitionSnapshot;
 
 pub struct DbTableSnapshot {
     #[cfg(feature = "main_node")]
+    #[cfg(feature = "persistence")]
     pub attr: DbTableAttributes,
     pub last_update_time: DateTimeAsMicroseconds,
     pub by_partition: BTreeMap<String, DbPartitionSnapshot>,
@@ -27,6 +28,7 @@ impl DbTableSnapshot {
 
         Self {
             #[cfg(feature = "main_node")]
+            #[cfg(feature = "persistence")]
             attr: db_table.attributes.clone(),
             last_update_time,
             by_partition,
