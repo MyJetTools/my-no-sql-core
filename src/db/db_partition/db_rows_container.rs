@@ -1,9 +1,14 @@
 use std::{
-    collections::{btree_map::Values, BTreeMap, HashMap},
+    collections::{btree_map::Values, BTreeMap},
     sync::Arc,
 };
 
-use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
+#[cfg(feature = "expiration_index")]
+use std::collections::HashMap;
+
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+#[cfg(feature = "expiration_index")]
+use rust_extensions::lazy::LazyVec;
 
 use crate::db::{
     update_expiration_time_model::UpdateExpirationDateTime, DbRow, UpdateExpirationTimeModel,
@@ -262,6 +267,7 @@ impl DbRowsContainer {
     }
 }
 
+#[cfg(feature = "expiration_index")]
 #[cfg(test)]
 mod tests {
 

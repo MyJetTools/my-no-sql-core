@@ -66,6 +66,7 @@ impl DbTable {
         self.partitions.len()
     }
 
+    #[cfg(feature = "expiration_index")]
     pub fn get_expiration_index_rows_amount(&self) -> usize {
         let mut result = 0;
 
