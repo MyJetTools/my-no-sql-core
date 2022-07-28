@@ -11,6 +11,7 @@ use crate::{
     db_json_entity::JsonTimeStamp,
 };
 
+#[cfg(feature = "main_node")]
 use super::DbTableAttributes;
 
 pub type TPartitions = BTreeMap<String, DbPartition>;
@@ -25,14 +26,25 @@ pub struct DbTable {
 }
 
 impl DbTable {
+    #[cfg(feature = "main_node")]
     pub fn new(name: String, attributes: DbTableAttributes) -> Self {
         Self {
             name,
             partitions: BTreeMap::new(),
             last_read_time: AtomicDateTimeAsMicroseconds::new(attributes.created.unix_microseconds),
             last_update_time: DateTimeAsMicroseconds::now(),
-            #[cfg(feature = "main_node")]
+
             attributes,
+        }
+    }
+
+    #[cfg(feature = "node")]
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            partitions: BTreeMap::new(),
+            last_read_time: AtomicDateTimeAsMicroseconds::now(),
+            last_update_time: DateTimeAsMicroseconds::now(),
         }
     }
 
@@ -378,6 +390,7 @@ impl Into<BTreeMap<String, DbPartitionSnapshot>> for &DbTable {
     }
 }
 
+#[cfg(feature = "main_node")]
 #[cfg(test)]
 mod tests {
     use crate::db_json_entity::JsonTimeStamp;
