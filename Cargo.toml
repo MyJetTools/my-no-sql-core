@@ -7,6 +7,7 @@ edition = "2021"
 default = []
 main_node = []
 node = []
+persistence = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

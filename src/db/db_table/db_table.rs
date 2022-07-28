@@ -12,6 +12,7 @@ use crate::{
 };
 
 #[cfg(feature = "main_node")]
+#[cfg(feature = "persistence")]
 use super::DbTableAttributes;
 
 pub type TPartitions = BTreeMap<String, DbPartition>;
@@ -22,11 +23,13 @@ pub struct DbTable {
     pub last_read_time: AtomicDateTimeAsMicroseconds,
     pub last_update_time: DateTimeAsMicroseconds,
     #[cfg(feature = "main_node")]
+    #[cfg(feature = "persistence")]
     pub attributes: DbTableAttributes,
 }
 
 impl DbTable {
     #[cfg(feature = "main_node")]
+    #[cfg(feature = "persistence")]
     pub fn new(name: String, attributes: DbTableAttributes) -> Self {
         Self {
             name,
