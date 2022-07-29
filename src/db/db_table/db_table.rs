@@ -177,7 +177,7 @@ impl DbTable {
     pub fn get_table_snapshot(&self) -> DbTableSnapshot {
         DbTableSnapshot {
             #[cfg(feature = "table_attributes")]
-            attr: read_access.db_table.attributes.clone(),
+            attr: self.attributes.clone(),
             last_update_time: self.get_last_update_time(),
             by_partition: self.get_partitions_snapshot(),
         }
