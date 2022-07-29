@@ -7,7 +7,10 @@ use std::{
 };
 
 use crate::{
-    db::{db_snapshots::DbPartitionSnapshot, DbPartition, DbRow, UpdateExpirationTimeModel},
+    db::{
+        db_snapshots::{DbPartitionSnapshot, DbTableSnapshot},
+        DbPartition, DbRow, UpdateExpirationTimeModel,
+    },
     db_json_entity::JsonTimeStamp,
 };
 
@@ -169,6 +172,25 @@ impl DbTable {
     #[inline]
     pub fn get_partitions(&self) -> Values<String, DbPartition> {
         self.partitions.values()
+    }
+
+    pub fn get_table_snapshot(&self) -> DbTableSnapshot {
+        DbTableSnapshot {
+            #[cfg(feature = "table_attributes")]
+            attr: read_access.db_table.attributes.clone(),
+            last_update_time: self.get_last_update_time(),
+            by_partition: self.get_partitions_snapshot(),
+        }
+    }
+
+    pub fn get_partitions_snapshot(&self) -> BTreeMap<String, DbPartitionSnapshot> {
+        let mut result = BTreeMap::new();
+
+        for (partition_key, db_partition) in &self.partitions {
+            result.insert(partition_key.to_string(), db_partition.into());
+        }
+
+        result
     }
 }
 
