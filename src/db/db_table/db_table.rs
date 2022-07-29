@@ -33,12 +33,12 @@ impl DbTable {
             partitions: BTreeMap::new(),
             last_read_time: AtomicDateTimeAsMicroseconds::new(attributes.created.unix_microseconds),
             last_update_time: DateTimeAsMicroseconds::now(),
-
+            #[cfg(feature = "table_attributes")]
             attributes,
         }
     }
 
-    #[cfg(feature = "node")]
+    #[cfg(feature = "no_table_attributes")]
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -80,7 +80,7 @@ impl DbTable {
         self.partitions.len()
     }
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     pub fn get_expiration_index_rows_amount(&self) -> usize {
         let mut result = 0;
 
@@ -390,7 +390,7 @@ impl Into<BTreeMap<String, DbPartitionSnapshot>> for &DbTable {
     }
 }
 
-#[cfg(feature = "main_node")]
+#[cfg(feature = "row_expiration")]
 #[cfg(test)]
 mod tests {
     use crate::db_json_entity::JsonTimeStamp;

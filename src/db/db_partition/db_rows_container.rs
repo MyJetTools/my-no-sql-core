@@ -3,11 +3,11 @@ use std::{
     sync::Arc,
 };
 
-#[cfg(feature = "main_node")]
+#[cfg(feature = "row_expiration")]
 use std::collections::HashMap;
 
 use rust_extensions::date_time::DateTimeAsMicroseconds;
-#[cfg(feature = "main_node")]
+#[cfg(feature = "row_expiration")]
 use rust_extensions::lazy::LazyVec;
 
 use crate::db::{
@@ -17,7 +17,7 @@ use crate::db::{
 pub struct DbRowsContainer {
     data: BTreeMap<String, Arc<DbRow>>,
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     rows_with_expiration_index: BTreeMap<i64, HashMap<String, Arc<DbRow>>>,
 }
 
@@ -25,7 +25,7 @@ impl DbRowsContainer {
     pub fn new() -> Self {
         Self {
             data: BTreeMap::new(),
-            #[cfg(feature = "main_node")]
+            #[cfg(feature = "row_expiration")]
             rows_with_expiration_index: BTreeMap::new(),
         }
     }
@@ -34,12 +34,12 @@ impl DbRowsContainer {
         self.data.len()
     }
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     pub fn rows_with_expiration_index_len(&self) -> usize {
         self.rows_with_expiration_index.len()
     }
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<String>> {
         let mut keys = LazyVec::new();
         for expiration_time in self.rows_with_expiration_index.keys() {
@@ -64,7 +64,7 @@ impl DbRowsContainer {
         Some(result)
     }
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     fn insert_expiration_index(&mut self, db_row: &Arc<DbRow>) {
         let expires = db_row.get_expires();
         if expires.is_none() {
@@ -89,7 +89,7 @@ impl DbRowsContainer {
         }
     }
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     fn remove_expiration_index(&mut self, db_row: &Arc<DbRow>) {
         let expires = db_row.get_expires();
         if expires.is_none() {
@@ -114,23 +114,23 @@ impl DbRowsContainer {
         }
     }
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     fn insert_indices(&mut self, db_row: &Arc<DbRow>) {
         self.insert_expiration_index(&db_row);
     }
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     fn remove_indices(&mut self, db_row: &Arc<DbRow>) {
         self.remove_expiration_index(&db_row);
     }
 
     pub fn insert(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
-        #[cfg(feature = "main_node")]
+        #[cfg(feature = "row_expiration")]
         self.insert_indices(&db_row);
 
         let result = self.data.insert(db_row.row_key.to_string(), db_row);
 
-        #[cfg(feature = "main_node")]
+        #[cfg(feature = "row_expiration")]
         if let Some(removed_db_row) = &result {
             self.remove_indices(&removed_db_row);
         }
@@ -141,7 +141,7 @@ impl DbRowsContainer {
     pub fn remove(&mut self, row_key: &str) -> Option<Arc<DbRow>> {
         let result = self.data.remove(row_key);
 
-        #[cfg(feature = "main_node")]
+        #[cfg(feature = "row_expiration")]
         if let Some(removed_db_row) = &result {
             self.remove_indices(&removed_db_row);
         }
@@ -255,19 +255,19 @@ impl DbRowsContainer {
         db_row: &Arc<DbRow>,
         expiration_time: Option<DateTimeAsMicroseconds>,
     ) {
-        #[cfg(feature = "main_node")]
+        #[cfg(feature = "row_expiration")]
         self.remove_expiration_index(db_row);
 
         db_row.update_expires(expiration_time);
 
-        #[cfg(feature = "main_node")]
+        #[cfg(feature = "row_expiration")]
         if expiration_time.is_some() {
             self.insert_expiration_index(db_row);
         }
     }
 }
 
-#[cfg(feature = "main_node")]
+#[cfg(feature = "row_expiration")]
 #[cfg(test)]
 mod tests {
 

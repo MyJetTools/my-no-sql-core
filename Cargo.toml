@@ -5,9 +5,9 @@ edition = "2021"
 
 [features]
 default = []
-main_node = []
-node = []
+row_expiration = []
 table_attributes = []
+no_table_attributes = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

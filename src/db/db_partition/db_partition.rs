@@ -55,7 +55,7 @@ impl DbPartition {
         }
     }
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<String>> {
         self.rows.get_rows_to_expire(now)
     }
@@ -228,7 +228,7 @@ impl DbPartition {
         self.rows.len()
     }
 
-    #[cfg(feature = "main_node")]
+    #[cfg(feature = "row_expiration")]
     pub fn get_expiration_index_rows_amount(&self) -> usize {
         self.rows.rows_with_expiration_index_len()
     }
