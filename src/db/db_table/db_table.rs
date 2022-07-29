@@ -170,19 +170,6 @@ impl DbTable {
     pub fn get_partitions(&self) -> Values<String, DbPartition> {
         self.partitions.values()
     }
-
-    pub fn get_partitions_last_write_moment(&self) -> HashMap<String, DateTimeAsMicroseconds> {
-        let mut result = HashMap::new();
-
-        for (partition_key, db_partition) in &self.partitions {
-            result.insert(
-                partition_key.to_string(),
-                db_partition.get_last_write_moment(),
-            );
-        }
-
-        result
-    }
 }
 
 /// Insert Operations
