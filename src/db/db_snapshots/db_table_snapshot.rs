@@ -11,8 +11,7 @@ use crate::db::DbTableAttributes;
 use super::DbPartitionSnapshot;
 
 pub struct DbTableSnapshot {
-    #[cfg(feature = "main_node")]
-    #[cfg(feature = "persistence")]
+    #[cfg(feature = "table_attributes")]
     pub attr: DbTableAttributes,
     pub last_update_time: DateTimeAsMicroseconds,
     pub by_partition: BTreeMap<String, DbPartitionSnapshot>,
@@ -27,8 +26,7 @@ impl DbTableSnapshot {
         }
 
         Self {
-            #[cfg(feature = "main_node")]
-            #[cfg(feature = "persistence")]
+            #[cfg(feature = "table_attributes")]
             attr: db_table.attributes.clone(),
             last_update_time,
             by_partition,
