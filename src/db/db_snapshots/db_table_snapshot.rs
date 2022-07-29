@@ -5,7 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::db::DbTable;
 
-#[cfg(feature = "row_expiration")]
+#[cfg(feature = "table_attributes")]
 use crate::db::DbTableAttributes;
 
 use super::DbPartitionSnapshot;
