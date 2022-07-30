@@ -14,7 +14,7 @@ pub struct DbRow {
     expires: AtomicI64,
 
     #[cfg(feature = "row_expiration_read_only")]
-    expires: DateTimeAsMicroseconds,
+    pub expires: Option<DateTimeAsMicroseconds>,
     pub time_stamp: String,
     #[cfg(feature = "db_row_last_read_access")]
     pub last_read_access: AtomicDateTimeAsMicroseconds,
@@ -39,6 +39,8 @@ impl DbRow {
             data,
             #[cfg(feature = "row_expiration")]
             expires: AtomicI64::new(expires_to_i64(expires)),
+            #[cfg(feature = "row_expiration_read_only")]
+            expires,
             time_stamp: time_stamp.as_str().to_string(),
             #[cfg(feature = "db_row_last_read_access")]
             last_read_access,

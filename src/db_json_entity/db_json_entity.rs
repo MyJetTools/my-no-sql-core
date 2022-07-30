@@ -104,6 +104,8 @@ impl<'s> DbJsonEntity<'s> {
             data,
             #[cfg(feature = "row_expiration")]
             self.expires,
+            #[cfg(feature = "row_expiration_read_only")]
+            self.expires,
             time_stamp,
         );
     }
@@ -114,6 +116,8 @@ impl<'s> DbJsonEntity<'s> {
             self.row_key.to_string(),
             self.raw.to_vec(),
             #[cfg(feature = "row_expiration")]
+            self.expires,
+            #[cfg(feature = "row_expiration_read_only")]
             self.expires,
             time_stamp,
         );
