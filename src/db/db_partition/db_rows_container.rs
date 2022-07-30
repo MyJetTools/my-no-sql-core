@@ -4,15 +4,17 @@ use std::{
 };
 
 #[cfg(feature = "row_expiration")]
-use std::collections::HashMap;
-
+use crate::db::update_expiration_time_model::UpdateExpirationDateTime;
+#[cfg(feature = "row_expiration")]
+use crate::db::UpdateExpirationTimeModel;
+#[cfg(feature = "row_expiration")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 #[cfg(feature = "row_expiration")]
 use rust_extensions::lazy::LazyVec;
+#[cfg(feature = "row_expiration")]
+use std::collections::HashMap;
 
-use crate::db::{
-    update_expiration_time_model::UpdateExpirationDateTime, DbRow, UpdateExpirationTimeModel,
-};
+use crate::db::DbRow;
 
 pub struct DbRowsContainer {
     data: BTreeMap<String, Arc<DbRow>>,
@@ -153,6 +155,7 @@ impl DbRowsContainer {
         self.data.get(row_key)
     }
 
+    #[cfg(feature = "row_expiration")]
     pub fn get_and_update_expiration_time(
         &mut self,
         row_key: &str,
@@ -177,6 +180,7 @@ impl DbRowsContainer {
         self.data.values()
     }
 
+    #[cfg(feature = "row_expiration")]
     pub fn get_all_and_update_expiration_time<'s>(
         &'s mut self,
         update_expiration_time: &UpdateExpirationTimeModel,
@@ -218,6 +222,7 @@ impl DbRowsContainer {
         result
     }
 
+    #[cfg(feature = "row_expiration")]
     pub fn get_highest_row_and_below_and_update_expiration_time(
         &mut self,
         row_key: &String,
@@ -239,6 +244,7 @@ impl DbRowsContainer {
             }
         }
 
+        #[cfg(feature = "row_expiration")]
         if let UpdateExpirationDateTime::Yes(expiration_time) =
             update_expiration.update_db_rows_expiration_time
         {
@@ -250,17 +256,16 @@ impl DbRowsContainer {
         result
     }
 
+    #[cfg(feature = "row_expiration")]
     fn update_expiration_time(
         &mut self,
         db_row: &Arc<DbRow>,
         expiration_time: Option<DateTimeAsMicroseconds>,
     ) {
-        #[cfg(feature = "row_expiration")]
         self.remove_expiration_index(db_row);
 
         db_row.update_expires(expiration_time);
 
-        #[cfg(feature = "row_expiration")]
         if expiration_time.is_some() {
             self.insert_expiration_index(db_row);
         }

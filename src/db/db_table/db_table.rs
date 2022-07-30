@@ -9,10 +9,13 @@ use std::{
 use crate::{
     db::{
         db_snapshots::{DbPartitionSnapshot, DbTableSnapshot},
-        DbPartition, DbRow, UpdateExpirationTimeModel,
+        DbPartition, DbRow,
     },
     db_json_entity::JsonTimeStamp,
 };
+
+#[cfg(feature = "row_expiration")]
+use crate::db::UpdateExpirationTimeModel;
 
 #[cfg(feature = "table_attributes")]
 use super::DbTableAttributes;
@@ -106,6 +109,7 @@ impl DbTable {
         result
     }
 
+    #[cfg(feature = "row_expiration")]
     pub fn get_all_rows_and_update_expiration_time<'s>(
         &'s mut self,
         update_expiration_time: &UpdateExpirationTimeModel,

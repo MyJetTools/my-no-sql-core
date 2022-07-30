@@ -1,11 +1,13 @@
-use std::{collections::BTreeMap, sync::Arc};
-
-use my_json::json_reader::{array_parser::ArrayToJsonObjectsSplitter, JsonFirstLineReader};
-use rust_extensions::date_time::DateTimeAsMicroseconds;
-
 use crate::db::DbRow;
 
-use super::{date_time_injector::TimeStampValuePosition, DbEntityParseFail, JsonTimeStamp};
+use my_json::json_reader::array_parser::ArrayToJsonObjectsSplitter;
+
+use std::{collections::BTreeMap, sync::Arc};
+
+use super::JsonTimeStamp;
+use super::{date_time_injector::TimeStampValuePosition, DbEntityParseFail};
+use my_json::json_reader::JsonFirstLineReader;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 pub struct DbJsonEntity<'s> {
     pub partition_key: &'s str,
@@ -100,6 +102,7 @@ impl<'s> DbJsonEntity<'s> {
             self.partition_key.to_string(),
             self.row_key.to_string(),
             data,
+            #[cfg(feature = "row_expiration")]
             self.expires,
             time_stamp,
         );
@@ -110,11 +113,13 @@ impl<'s> DbJsonEntity<'s> {
             self.partition_key.to_string(),
             self.row_key.to_string(),
             self.raw.to_vec(),
+            #[cfg(feature = "row_expiration")]
             self.expires,
             time_stamp,
         );
     }
 
+    #[cfg(feature = "row_expiration")]
     pub fn parse_as_vec(
         src: &'s [u8],
         time_stamp: &JsonTimeStamp,

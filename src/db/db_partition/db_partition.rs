@@ -6,10 +6,13 @@ use rust_extensions::{
 
 use crate::db::{
     db_snapshots::{DbPartitionSnapshot, DbRowsSnapshot},
-    update_expiration_time_model::UpdateExpirationDateTime,
-    DbRow, UpdateExpirationTimeModel,
+    DbRow,
 };
 
+#[cfg(feature = "row_expiration")]
+use crate::db::{
+    update_expiration_time_model::UpdateExpirationDateTime, UpdateExpirationTimeModel,
+};
 #[cfg(feature = "db_row_last_read_access")]
 use crate::utils::SortedDictionary;
 
@@ -24,6 +27,7 @@ pub enum UpdatePartitionReadMoment {
 }
 
 pub struct DbPartition {
+    #[cfg(feature = "row_expiration")]
     expires: Option<DateTimeAsMicroseconds>,
     rows: DbRowsContainer,
     last_read_moment: AtomicDateTimeAsMicroseconds,
@@ -38,6 +42,7 @@ impl DbPartition {
             last_read_moment: AtomicDateTimeAsMicroseconds::now(),
             last_write_moment: AtomicDateTimeAsMicroseconds::now(),
             content_size: 0,
+            #[cfg(feature = "row_expiration")]
             expires: None,
         }
     }
@@ -171,6 +176,7 @@ impl DbPartition {
         result.get_result()
     }
 
+    #[cfg(feature = "row_expiration")]
     pub fn get_rows_and_update_expiration_time(
         &mut self,
         row_keys: &[String],
@@ -201,6 +207,7 @@ impl DbPartition {
         self.rows.get_all()
     }
 
+    #[cfg(feature = "row_expiration")]
     pub fn get_all_rows_and_update_expiration_time<'s>(
         &'s mut self,
         update_last_read_moment: Option<DateTimeAsMicroseconds>,
@@ -245,7 +252,7 @@ impl DbPartition {
         self.update_last_read_moment(update_last_read_moment, result.is_some());
         result
     }
-
+    #[cfg(feature = "row_expiration")]
     pub fn get_row_and_update_expiration_time(
         &mut self,
         row_key: &str,
@@ -333,6 +340,7 @@ impl DbPartition {
         return self.rows.get_highest_row_and_below(row_key, limit);
     }
 
+    #[cfg(feature = "row_expiration")]
     pub fn get_highest_row_and_below_and_update_expiration_time(
         &mut self,
         row_key: &String,
