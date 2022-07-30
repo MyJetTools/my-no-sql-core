@@ -4,14 +4,15 @@ use rust_extensions::{
     lazy::LazyVec,
 };
 
-use crate::{
-    db::{
-        db_snapshots::{DbPartitionSnapshot, DbRowsSnapshot},
-        update_expiration_time_model::UpdateExpirationDateTime,
-        DbRow, UpdateExpirationTimeModel,
-    },
-    utils::SortedDictionary,
+use crate::db::{
+    db_snapshots::{DbPartitionSnapshot, DbRowsSnapshot},
+    update_expiration_time_model::UpdateExpirationDateTime,
+    DbRow, UpdateExpirationTimeModel,
 };
+
+#[cfg(feature = "db_row_last_read_access")]
+use crate::utils::SortedDictionary;
+
 use std::{collections::btree_map::Values, sync::Arc};
 
 use super::DbRowsContainer;
@@ -258,6 +259,7 @@ impl DbPartition {
         result
     }
 
+    #[cfg(feature = "db_row_last_read_access")]
     pub fn get_row_and_clone(
         &self,
         row_key: &str,
@@ -272,6 +274,7 @@ impl DbPartition {
         Some(result.clone())
     }
 
+    #[cfg(feature = "db_row_last_read_access")]
     pub fn gc_rows(&mut self, max_rows_amount: usize) -> Option<Vec<Arc<DbRow>>> {
         if self.rows.len() == 0 {
             return None;

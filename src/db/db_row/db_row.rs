@@ -1,8 +1,10 @@
 use std::sync::atomic::AtomicI64;
 
-use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::db_json_entity::JsonTimeStamp;
+#[cfg(feature = "db_row_last_read_access")]
+use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 
 pub struct DbRow {
     pub partition_key: String,
@@ -10,6 +12,7 @@ pub struct DbRow {
     pub data: Vec<u8>,
     expires: AtomicI64,
     pub time_stamp: String,
+    #[cfg(feature = "db_row_last_read_access")]
     pub last_read_access: AtomicDateTimeAsMicroseconds,
 }
 
@@ -21,6 +24,7 @@ impl DbRow {
         expires: Option<DateTimeAsMicroseconds>,
         time_stamp: &JsonTimeStamp,
     ) -> Self {
+        #[cfg(feature = "db_row_last_read_access")]
         let last_read_access =
             AtomicDateTimeAsMicroseconds::new(time_stamp.date_time.unix_microseconds);
 
@@ -30,10 +34,12 @@ impl DbRow {
             data,
             expires: AtomicI64::new(expires_to_i64(expires)),
             time_stamp: time_stamp.as_str().to_string(),
+            #[cfg(feature = "db_row_last_read_access")]
             last_read_access,
         }
     }
 
+    #[cfg(feature = "db_row_last_read_access")]
     pub fn update_last_access(&self, now: DateTimeAsMicroseconds) {
         self.last_read_access.update(now);
     }

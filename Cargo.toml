@@ -8,6 +8,7 @@ default = []
 row_expiration = []
 table_attributes = []
 no_table_attributes = []
+db_row_last_read_access = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
