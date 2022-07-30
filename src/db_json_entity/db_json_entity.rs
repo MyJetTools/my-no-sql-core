@@ -123,7 +123,6 @@ impl<'s> DbJsonEntity<'s> {
         );
     }
 
-    #[cfg(feature = "row_expiration")]
     pub fn parse_as_vec(
         src: &'s [u8],
         time_stamp: &JsonTimeStamp,
