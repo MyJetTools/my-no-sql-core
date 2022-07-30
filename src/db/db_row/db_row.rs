@@ -47,6 +47,32 @@ impl DbRow {
         }
     }
 
+    pub fn restore(
+        partition_key: String,
+        row_key: String,
+        data: Vec<u8>,
+        #[cfg(feature = "row_expiration")] expires: Option<DateTimeAsMicroseconds>,
+        #[cfg(feature = "row_expiration_read_only")] expires: Option<DateTimeAsMicroseconds>,
+        time_stamp: String,
+    ) -> Self {
+        #[cfg(feature = "db_row_last_read_access")]
+        let last_read_access =
+            AtomicDateTimeAsMicroseconds::new(time_stamp.date_time.unix_microseconds);
+
+        Self {
+            partition_key,
+            row_key,
+            data,
+            #[cfg(feature = "row_expiration")]
+            expires: AtomicI64::new(expires_to_i64(expires)),
+            #[cfg(feature = "row_expiration_read_only")]
+            expires,
+            time_stamp,
+            #[cfg(feature = "db_row_last_read_access")]
+            last_read_access,
+        }
+    }
+
     #[cfg(feature = "db_row_last_read_access")]
     pub fn update_last_access(&self, now: DateTimeAsMicroseconds) {
         self.last_read_access.update(now);
