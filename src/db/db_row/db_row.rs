@@ -1,3 +1,4 @@
+#[cfg(feature = "row_expiration_read_only")]
 #[cfg(feature = "row_expiration")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -11,6 +12,9 @@ pub struct DbRow {
     pub data: Vec<u8>,
     #[cfg(feature = "row_expiration")]
     expires: AtomicI64,
+
+    #[cfg(feature = "row_expiration_read_only")]
+    expires: DateTimeAsMicroseconds,
     pub time_stamp: String,
     #[cfg(feature = "db_row_last_read_access")]
     pub last_read_access: AtomicDateTimeAsMicroseconds,
@@ -22,6 +26,7 @@ impl DbRow {
         row_key: String,
         data: Vec<u8>,
         #[cfg(feature = "row_expiration")] expires: Option<DateTimeAsMicroseconds>,
+        #[cfg(feature = "row_expiration_read_only")] expires: Option<DateTimeAsMicroseconds>,
         time_stamp: &JsonTimeStamp,
     ) -> Self {
         #[cfg(feature = "db_row_last_read_access")]

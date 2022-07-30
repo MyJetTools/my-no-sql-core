@@ -6,6 +6,7 @@ edition = "2021"
 [features]
 default = []
 row_expiration = []
+row_expiration_read_only = []
 table_attributes = []
 no_table_attributes = []
 db_row_last_read_access = []
