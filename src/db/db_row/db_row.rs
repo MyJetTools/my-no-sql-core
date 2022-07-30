@@ -1,10 +1,10 @@
-#[cfg(feature = "row_expiration_read_only")]
-#[cfg(feature = "row_expiration")]
-use rust_extensions::date_time::DateTimeAsMicroseconds;
-
 use crate::db_json_entity::JsonTimeStamp;
 #[cfg(feature = "db_row_last_read_access")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
+#[cfg(feature = "row_expiration")]
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+#[cfg(feature = "row_expiration_read_only")]
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 pub struct DbRow {
     pub partition_key: String,
