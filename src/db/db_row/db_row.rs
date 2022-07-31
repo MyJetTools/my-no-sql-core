@@ -11,7 +11,7 @@ pub struct DbRow {
     pub row_key: String,
     pub data: Vec<u8>,
     #[cfg(feature = "row_expiration")]
-    expires: AtomicI64,
+    expires: std::sync::atomic::AtomicI64,
 
     #[cfg(feature = "row_expiration_read_only")]
     pub expires: Option<DateTimeAsMicroseconds>,
@@ -38,7 +38,7 @@ impl DbRow {
             row_key,
             data,
             #[cfg(feature = "row_expiration")]
-            expires: AtomicI64::new(expires_to_i64(expires)),
+            expires: std::sync::atomic::AtomicI64::new(expires_to_i64(expires)),
             #[cfg(feature = "row_expiration_read_only")]
             expires,
             time_stamp: time_stamp.as_str().to_string(),
@@ -64,7 +64,7 @@ impl DbRow {
             row_key,
             data,
             #[cfg(feature = "row_expiration")]
-            expires: AtomicI64::new(expires_to_i64(expires)),
+            expires: std::sync::atomic::AtomicI64::new(expires_to_i64(expires)),
             #[cfg(feature = "row_expiration_read_only")]
             expires,
             time_stamp,

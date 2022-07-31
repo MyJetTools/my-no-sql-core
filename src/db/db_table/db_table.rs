@@ -404,6 +404,7 @@ impl Into<BTreeMap<String, DbPartitionSnapshot>> for &DbTable {
 }
 
 #[cfg(feature = "row_expiration")]
+#[cfg(feature = "table_attributes")]
 #[cfg(test)]
 mod tests {
     use crate::db_json_entity::JsonTimeStamp;
