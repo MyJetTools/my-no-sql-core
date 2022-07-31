@@ -56,8 +56,7 @@ impl DbRow {
         time_stamp: String,
     ) -> Self {
         #[cfg(feature = "db_row_last_read_access")]
-        let last_read_access =
-            AtomicDateTimeAsMicroseconds::new(time_stamp.date_time.unix_microseconds);
+        let last_read_access = AtomicDateTimeAsMicroseconds::now();
 
         Self {
             partition_key,
