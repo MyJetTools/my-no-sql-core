@@ -180,7 +180,8 @@ fn compile_row_content(
 
 #[cfg(test)]
 mod tests {
-    use crate::db_json_entity::DbEntityParseFail;
+
+    use crate::db_json_entity::{DbEntityParseFail, JsonTimeStamp};
 
     use super::DbJsonEntity;
 
@@ -215,5 +216,16 @@ mod tests {
         } else {
             panic!("Should not be here")
         }
+    }
+    #[test]
+    pub fn parse_some_case_from_real_life() {
+        let src_json = r#"{"value":{"is_enabled":true,"fee_percent":5.0,"min_balance_usd":100.0,"fee_period_days":30,"inactivity_period_days":90},"PartitionKey":"*","RowKey":"*"}"#;
+
+        let result = DbJsonEntity::parse(src_json.as_bytes()).unwrap();
+
+        let time_stamp = JsonTimeStamp::now();
+        let db_row = result.to_db_row(&time_stamp);
+
+        println!("{:?}", std::str::from_utf8(db_row.data.as_slice()).unwrap());
     }
 }
