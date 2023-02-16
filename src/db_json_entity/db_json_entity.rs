@@ -95,8 +95,24 @@ impl<'s> DbJsonEntity<'s> {
         return Ok(result);
     }
 
-    pub fn to_db_row(&self, time_stamp: &JsonTimeStamp) -> DbRow {
-        let data = compile_row_content(self.raw, &self.timestamp_value_position, time_stamp);
+    pub fn to_db_row(&self, inject_time_stamp: &Option<JsonTimeStamp>) -> DbRow {
+        let (data, time_stamp) = if let Some(time_stamp_to_inject) = inject_time_stamp {
+            (
+                compile_row_content(
+                    self.raw,
+                    &self.timestamp_value_position,
+                    &time_stamp_to_inject,
+                ),
+                time_stamp_to_inject.as_str().to_string(),
+            )
+        } else {
+            let time_stamp = if let Some(time_stamp) = self.time_stamp {
+                time_stamp.to_string()
+            } else {
+                JsonTimeStamp::now().as_str().to_string()
+            };
+            (self.raw.to_vec(), time_stamp)
+        };
 
         return DbRow::new(
             self.partition_key.to_string(),
@@ -108,7 +124,7 @@ impl<'s> DbJsonEntity<'s> {
         );
     }
 
-    pub fn restore_db_row(&self, time_stamp: &JsonTimeStamp) -> DbRow {
+    pub fn restore_db_row(&self, time_stamp: String) -> DbRow {
         return DbRow::new(
             self.partition_key.to_string(),
             self.row_key.to_string(),
@@ -121,13 +137,13 @@ impl<'s> DbJsonEntity<'s> {
 
     pub fn parse_as_vec(
         src: &'s [u8],
-        time_stamp: &JsonTimeStamp,
+        inject_time_stamp: &Option<JsonTimeStamp>,
     ) -> Result<Vec<Arc<DbRow>>, DbEntityParseFail> {
         let mut result = Vec::new();
 
         for json in src.split_array_json_to_objects() {
             let db_entity = DbJsonEntity::parse(json?)?;
-            let db_row = db_entity.to_db_row(time_stamp);
+            let db_row = db_entity.to_db_row(inject_time_stamp);
 
             result.push(Arc::new(db_row));
         }
@@ -136,13 +152,13 @@ impl<'s> DbJsonEntity<'s> {
 
     pub fn parse_as_btreemap(
         src: &'s [u8],
-        time_stamp: &JsonTimeStamp,
+        inject_time_stamp: &Option<JsonTimeStamp>,
     ) -> Result<BTreeMap<String, Vec<Arc<DbRow>>>, DbEntityParseFail> {
         let mut result = BTreeMap::new();
 
         for json in src.split_array_json_to_objects() {
             let db_entity = DbJsonEntity::parse(json?)?;
-            let db_row = db_entity.to_db_row(time_stamp);
+            let db_row = db_entity.to_db_row(inject_time_stamp);
 
             if !result.contains_key(db_entity.partition_key) {
                 result.insert(db_entity.partition_key.to_string(), Vec::new());
@@ -220,7 +236,7 @@ mod tests {
         let result = DbJsonEntity::parse(src_json.as_bytes()).unwrap();
 
         let time_stamp = JsonTimeStamp::now();
-        let db_row = result.to_db_row(&time_stamp);
+        let db_row = result.to_db_row(&Some(time_stamp));
 
         println!("{:?}", std::str::from_utf8(db_row.data.as_slice()).unwrap());
     }
