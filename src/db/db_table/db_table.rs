@@ -9,9 +9,6 @@ use std::{
 #[cfg(feature = "master_node")]
 use std::collections::HashMap;
 
-#[cfg(feature = "master_node")]
-use crate::db::db_snapshots::DbPartitionSnapshot;
-
 use crate::db::{DbPartition, DbRow};
 
 #[cfg(feature = "master_node")]
@@ -346,19 +343,6 @@ impl DbTable {
 
         self.last_update_time = DateTimeAsMicroseconds::now();
         Some(partitions)
-    }
-}
-
-#[cfg(feature = "master_node")]
-impl Into<BTreeMap<String, DbPartitionSnapshot>> for &DbTable {
-    fn into(self) -> BTreeMap<String, DbPartitionSnapshot> {
-        let mut result: BTreeMap<String, DbPartitionSnapshot> = BTreeMap::new();
-
-        for (partition_key, db_partition) in &self.partitions {
-            result.insert(partition_key.to_string(), db_partition.into());
-        }
-
-        result
     }
 }
 

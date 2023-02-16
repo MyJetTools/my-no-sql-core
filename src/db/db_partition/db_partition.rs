@@ -5,9 +5,6 @@ use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 
 #[cfg(feature = "master_node")]
-use crate::db::db_snapshots::DbRowsSnapshot;
-
-#[cfg(feature = "master_node")]
 use crate::db::{
     update_expiration_time_model::UpdateExpirationDateTime, UpdateExpirationTimeModel,
 };
@@ -26,8 +23,8 @@ pub enum UpdatePartitionReadMoment {
 
 pub struct DbPartition {
     #[cfg(feature = "master_node")]
-    expires: Option<DateTimeAsMicroseconds>,
-    rows: DbRowsContainer,
+    pub expires: Option<DateTimeAsMicroseconds>,
+    pub rows: DbRowsContainer,
     #[cfg(feature = "master_node")]
     pub last_read_moment: AtomicDateTimeAsMicroseconds,
     #[cfg(feature = "master_node")]
@@ -232,13 +229,6 @@ impl DbPartition {
 }
 
 #[cfg(feature = "master_node")]
-impl Into<DbRowsSnapshot> for &DbPartition {
-    fn into(self) -> DbRowsSnapshot {
-        DbRowsSnapshot::new_from_snapshot(self.rows.get_all().map(|itm| itm.clone()).collect())
-    }
-}
-
-#[cfg(feature = "master_node")]
 impl DbPartition {
     pub fn update_last_read_moment(&self, update: UpdatePartitionReadMoment, found_element: bool) {
         match update {
@@ -322,16 +312,5 @@ impl DbPartition {
         }
 
         return last_write_access;
-    }
-}
-
-#[cfg(feature = "master_node")]
-impl Into<crate::db::db_snapshots::DbPartitionSnapshot> for &DbPartition {
-    fn into(self) -> crate::db::db_snapshots::DbPartitionSnapshot {
-        crate::db::db_snapshots::DbPartitionSnapshot {
-            last_read_moment: self.last_read_moment.as_date_time(),
-            last_write_moment: self.last_write_moment.as_date_time(),
-            db_rows_snapshot: self.into(),
-        }
     }
 }
