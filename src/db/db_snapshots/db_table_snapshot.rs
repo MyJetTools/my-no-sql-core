@@ -5,13 +5,13 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use crate::db::DbTable;
 
-#[cfg(feature = "table_attributes")]
+#[cfg(feature = "master_node")]
 use crate::db::DbTableAttributes;
 
 use super::DbPartitionSnapshot;
 
 pub struct DbTableSnapshot {
-    #[cfg(feature = "table_attributes")]
+    #[cfg(feature = "master_node")]
     pub attr: DbTableAttributes,
     pub last_update_time: DateTimeAsMicroseconds,
     pub by_partition: BTreeMap<String, DbPartitionSnapshot>,
@@ -26,7 +26,7 @@ impl DbTableSnapshot {
         }
 
         Self {
-            #[cfg(feature = "table_attributes")]
+            #[cfg(feature = "master_node")]
             attr: db_table.attributes.clone(),
             last_update_time,
             by_partition,

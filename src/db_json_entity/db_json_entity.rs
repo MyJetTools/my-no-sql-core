@@ -102,9 +102,7 @@ impl<'s> DbJsonEntity<'s> {
             self.partition_key.to_string(),
             self.row_key.to_string(),
             data,
-            #[cfg(feature = "row_expiration")]
-            self.expires,
-            #[cfg(feature = "row_expiration_read_only")]
+            #[cfg(feature = "master_node")]
             self.expires,
             time_stamp,
         );
@@ -115,9 +113,7 @@ impl<'s> DbJsonEntity<'s> {
             self.partition_key.to_string(),
             self.row_key.to_string(),
             self.raw.to_vec(),
-            #[cfg(feature = "row_expiration")]
-            self.expires,
-            #[cfg(feature = "row_expiration_read_only")]
+            #[cfg(feature = "master_node")]
             self.expires,
             time_stamp,
         );
