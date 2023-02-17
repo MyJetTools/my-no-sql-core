@@ -200,7 +200,7 @@ impl DbRowsContainer {
 
         result
     }
-    #[cfg(feature = "master_node")]
+
     pub fn get_highest_row_and_below(
         &self,
         row_key: &String,

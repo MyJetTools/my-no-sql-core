@@ -195,6 +195,14 @@ impl DbPartition {
         Some(result.clone())
     }
 
+    pub fn get_highest_row_and_below(
+        &mut self,
+        row_key: &String,
+        limit: Option<usize>,
+    ) -> Vec<&Arc<DbRow>> {
+        return self.rows.get_highest_row_and_below(row_key, limit);
+    }
+
     #[cfg(feature = "master_node")]
     pub fn get_highest_row_and_below_and_update_expiration_time(
         &mut self,
