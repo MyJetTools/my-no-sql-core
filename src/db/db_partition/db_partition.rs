@@ -196,7 +196,7 @@ impl DbPartition {
     }
 
     pub fn get_highest_row_and_below(
-        &mut self,
+        &self,
         row_key: &String,
         limit: Option<usize>,
     ) -> Vec<&Arc<DbRow>> {
