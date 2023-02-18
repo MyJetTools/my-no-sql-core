@@ -9,6 +9,7 @@ use crate::db::update_expiration_time_model::UpdateExpirationDateTime;
 use crate::db::UpdateExpirationTimeModel;
 #[cfg(feature = "master_node")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::lazy::LazyVec;
 #[cfg(feature = "master_node")]
 use rust_extensions::lazy::LazyVec;
 #[cfg(feature = "master_node")]
@@ -205,11 +206,12 @@ impl DbRowsContainer {
         &self,
         row_key: &String,
         limit: Option<usize>,
-    ) -> Vec<&Arc<DbRow>> {
-        let mut result = Vec::new();
+    ) -> Option<Vec<&Arc<DbRow>>> {
+        let mut result = LazyVec::new();
+
         for (db_row_key, db_row) in self.data.range(..row_key.to_string()) {
             if db_row_key <= row_key {
-                result.insert(0, db_row);
+                result.add(db_row);
 
                 if let Some(limit) = limit {
                     if result.len() >= limit {
@@ -219,7 +221,7 @@ impl DbRowsContainer {
             }
         }
 
-        result
+        result.get_result()
     }
 
     #[cfg(feature = "master_node")]

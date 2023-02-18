@@ -199,7 +199,7 @@ impl DbPartition {
         &self,
         row_key: &String,
         limit: Option<usize>,
-    ) -> Vec<&Arc<DbRow>> {
+    ) -> Option<Vec<&Arc<DbRow>>> {
         return self.rows.get_highest_row_and_below(row_key, limit);
     }
 
