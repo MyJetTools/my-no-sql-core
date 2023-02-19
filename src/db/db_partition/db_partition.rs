@@ -156,6 +156,14 @@ impl DbPartition {
         }
     }
 
+    pub fn get_highest_row_and_below(
+        &self,
+        row_key: &String,
+        limit: Option<usize>,
+    ) -> Option<Vec<&Arc<DbRow>>> {
+        return self.rows.get_highest_row_and_below(row_key, limit);
+    }
+
     pub fn is_empty(&self) -> bool {
         self.rows.len() == 0
     }
@@ -226,14 +234,6 @@ impl DbPartition {
         }
 
         gced
-    }
-
-    pub fn get_highest_row_and_below(
-        &self,
-        row_key: &String,
-        limit: Option<usize>,
-    ) -> Option<Vec<&Arc<DbRow>>> {
-        return self.rows.get_highest_row_and_below(row_key, limit);
     }
 
     pub fn get_last_access(&self) -> rust_extensions::date_time::DateTimeAsMicroseconds {
