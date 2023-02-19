@@ -175,6 +175,28 @@ impl<'s> DbJsonEntity<'s> {
 
         return Ok(result);
     }
+
+    pub fn restore_as_btreemap(
+        src: &'s [u8],
+    ) -> Result<BTreeMap<String, Vec<Arc<DbRow>>>, DbEntityParseFail> {
+        let mut result = BTreeMap::new();
+
+        for json in src.split_array_json_to_objects() {
+            let db_entity = DbJsonEntity::parse(json?)?;
+            let db_row = db_entity.restore_db_row();
+
+            if !result.contains_key(db_entity.partition_key) {
+                result.insert(db_entity.partition_key.to_string(), Vec::new());
+            }
+
+            result
+                .get_mut(db_entity.partition_key)
+                .unwrap()
+                .push(Arc::new(db_row));
+        }
+
+        return Ok(result);
+    }
 }
 
 fn compile_row_content(
