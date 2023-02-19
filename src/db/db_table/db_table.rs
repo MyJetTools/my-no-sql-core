@@ -145,6 +145,17 @@ impl DbTable {
         json_array_writer.into()
     }
 
+    #[cfg(feature = "master_node")]
+    pub fn get_partitions_last_write_moment(&self) -> HashMap<String, DateTimeAsMicroseconds> {
+        let mut result = HashMap::new();
+
+        for (pk, db_partition) in &self.partitions {
+            result.insert(pk.to_string(), db_partition.get_last_write_moment());
+        }
+
+        result
+    }
+
     #[inline]
     pub fn get_partition_mut(&mut self, partition_key: &str) -> Option<&mut DbPartition> {
         self.partitions.get_mut(partition_key)
