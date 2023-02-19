@@ -4,11 +4,6 @@ use rust_extensions::{date_time::DateTimeAsMicroseconds, lazy::LazyVec};
 #[cfg(feature = "master_node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 
-#[cfg(feature = "master_node")]
-use crate::db::{
-    update_expiration_time_model::UpdateExpirationDateTime, UpdateExpirationTimeModel,
-};
-
 use crate::db::DbRow;
 
 use std::{collections::btree_map::Values, sync::Arc};
@@ -126,37 +121,8 @@ impl DbPartition {
         result.get_result()
     }
 
-    #[cfg(feature = "master_node")]
-    pub fn get_rows_and_update_expiration_time(
-        &mut self,
-        row_keys: &[String],
-        update_expiration_time: &UpdateExpirationTimeModel,
-    ) -> Option<Vec<Arc<DbRow>>> {
-        let mut result = LazyVec::new();
-
-        for row_key in row_keys {
-            if let Some(db_row) = self
-                .rows
-                .get_and_update_expiration_time(row_key, update_expiration_time)
-            {
-                result.add(db_row);
-            }
-        }
-
-        result.get_result()
-    }
-
     pub fn get_all_rows<'s>(&'s self) -> Values<'s, String, Arc<DbRow>> {
         self.rows.get_all()
-    }
-
-    #[cfg(feature = "master_node")]
-    pub fn get_all_rows_and_update_expiration_time<'s>(
-        &'s mut self,
-        update_expiration_time: &UpdateExpirationTimeModel,
-    ) -> Vec<Arc<DbRow>> {
-        self.rows
-            .get_all_and_update_expiration_time(update_expiration_time)
     }
 
     pub fn get_all_rows_cloned<'s>(&'s self) -> Vec<Arc<DbRow>> {
@@ -178,51 +144,10 @@ impl DbPartition {
         let result = self.rows.get(row_key);
         result
     }
-    #[cfg(feature = "master_node")]
-    pub fn get_row_and_update_expiration_time(
-        &mut self,
-        row_key: &str,
-        expiration_time: &UpdateExpirationTimeModel,
-    ) -> Option<Arc<DbRow>> {
-        let result = self
-            .rows
-            .get_and_update_expiration_time(row_key, expiration_time);
-        result
-    }
 
     pub fn get_row_and_clone(&self, row_key: &str) -> Option<Arc<DbRow>> {
         let result = self.rows.get(row_key)?;
         Some(result.clone())
-    }
-
-    pub fn get_highest_row_and_below(
-        &self,
-        row_key: &String,
-        limit: Option<usize>,
-    ) -> Option<Vec<&Arc<DbRow>>> {
-        return self.rows.get_highest_row_and_below(row_key, limit);
-    }
-
-    #[cfg(feature = "master_node")]
-    pub fn get_highest_row_and_below_and_update_expiration_time(
-        &mut self,
-        row_key: &String,
-        limit: Option<usize>,
-        update_expiration_time: &UpdateExpirationTimeModel,
-    ) -> Vec<Arc<DbRow>> {
-        if let UpdateExpirationDateTime::Yes(expiration_moment) =
-            update_expiration_time.update_db_partition_expiration_time
-        {
-            self.expires = expiration_moment;
-        }
-
-        return self
-            .rows
-            .get_highest_row_and_below_and_update_expiration_time(
-                row_key,
-                limit,
-                update_expiration_time,
-            );
     }
 
     pub fn fill_with_json_data(&self, json_array_writer: &mut JsonArrayWriter) {
@@ -307,7 +232,7 @@ impl DbPartition {
         &self,
         row_key: &String,
         limit: Option<usize>,
-    ) -> Vec<&Arc<DbRow>> {
+    ) -> Option<Vec<&Arc<DbRow>>> {
         return self.rows.get_highest_row_and_below(row_key, limit);
     }
 

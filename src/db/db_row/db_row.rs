@@ -1,6 +1,8 @@
 #[cfg(feature = "master_node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 
+use crate::db_json_entity::JsonTimeStamp;
+
 pub struct DbRow {
     pub partition_key: String,
     pub row_key: String,
@@ -22,7 +24,7 @@ impl DbRow {
             rust_extensions::date_time::DateTimeAsMicroseconds,
         >,
 
-        time_stamp: String,
+        time_stamp: &JsonTimeStamp,
     ) -> Self {
         #[cfg(feature = "master_node")]
         let last_read_access =
@@ -34,7 +36,7 @@ impl DbRow {
             data,
             #[cfg(feature = "master_node")]
             expires: std::sync::atomic::AtomicI64::new(expires_to_i64(expires)),
-            time_stamp,
+            time_stamp: time_stamp.as_str().to_string(),
             #[cfg(feature = "master_node")]
             last_read_access,
         }

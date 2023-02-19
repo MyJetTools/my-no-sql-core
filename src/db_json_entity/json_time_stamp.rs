@@ -2,6 +2,7 @@ use rust_extensions::date_time::{utils::parse_iso_string, DateTimeAsMicroseconds
 
 pub struct JsonTimeStamp {
     str_value: String,
+    pub date_time: DateTimeAsMicroseconds,
     index: usize,
 }
 
@@ -11,7 +12,11 @@ impl JsonTimeStamp {
         let str_value = date_time.to_rfc3339();
         let index = find_end_of_the_string(&str_value);
 
-        Self { str_value, index }
+        Self {
+            str_value,
+            index,
+            date_time,
+        }
     }
 
     pub fn parse_or_now(src: &str) -> Self {
@@ -32,6 +37,7 @@ impl JsonTimeStamp {
         Self {
             str_value: result.1,
             index,
+            date_time: result.0,
         }
     }
 
