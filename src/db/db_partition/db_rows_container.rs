@@ -183,15 +183,15 @@ impl DbRowsContainer {
     #[cfg(feature = "master_node")]
     pub fn update_expiration_time(
         &mut self,
-        db_row: &Arc<DbRow>,
+        db_row: Arc<DbRow>,
         expiration_time: Option<DateTimeAsMicroseconds>,
     ) {
-        self.remove_expiration_index(db_row);
+        self.remove_expiration_index(&db_row);
 
         db_row.update_expires(expiration_time);
 
         if expiration_time.is_some() {
-            self.insert_expiration_index(db_row);
+            self.insert_expiration_index(&db_row);
         }
     }
 }
@@ -278,7 +278,7 @@ mod tests {
 
         assert_eq!(0, db_rows.rows_with_expiration_index.len());
 
-        db_rows.update_expiration_time(&db_row, Some(DateTimeAsMicroseconds::new(2)));
+        db_rows.update_expiration_time(db_row, Some(DateTimeAsMicroseconds::new(2)));
 
         assert_eq!(true, db_rows.rows_with_expiration_index.contains_key(&2));
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
@@ -303,7 +303,7 @@ mod tests {
         assert_eq!(true, db_rows.rows_with_expiration_index.contains_key(&1));
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
 
-        db_rows.update_expiration_time(&db_row, Some(DateTimeAsMicroseconds::new(2)));
+        db_rows.update_expiration_time(db_row, Some(DateTimeAsMicroseconds::new(2)));
 
         assert_eq!(true, db_rows.rows_with_expiration_index.contains_key(&2));
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
@@ -328,7 +328,7 @@ mod tests {
         assert_eq!(true, db_rows.rows_with_expiration_index.contains_key(&1));
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
 
-        db_rows.update_expiration_time(&db_row, None);
+        db_rows.update_expiration_time(db_row, None);
 
         assert_eq!(0, db_rows.rows_with_expiration_index.len());
     }
