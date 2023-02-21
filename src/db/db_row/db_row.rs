@@ -68,7 +68,7 @@ impl DbRow {
     }
 
     #[cfg(feature = "master_node")]
-    pub fn update_last_access(&self, now: rust_extensions::date_time::DateTimeAsMicroseconds) {
+    pub fn update_last_read_access(&self, now: rust_extensions::date_time::DateTimeAsMicroseconds) {
         self.last_read_access.update(now);
     }
 
