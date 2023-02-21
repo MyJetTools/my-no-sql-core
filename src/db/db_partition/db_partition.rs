@@ -10,12 +10,6 @@ use std::{collections::btree_map::Values, sync::Arc};
 
 use super::DbRowsContainer;
 
-pub enum UpdatePartitionReadMoment {
-    Update(DateTimeAsMicroseconds),
-    UpdateIfElementIsFound(DateTimeAsMicroseconds),
-    None,
-}
-
 pub struct DbPartition {
     #[cfg(feature = "master_node")]
     pub expires: Option<DateTimeAsMicroseconds>,
@@ -171,18 +165,8 @@ impl DbPartition {
 
 #[cfg(feature = "master_node")]
 impl DbPartition {
-    pub fn update_last_read_moment(&self, update: UpdatePartitionReadMoment, found_element: bool) {
-        match update {
-            UpdatePartitionReadMoment::Update(now) => {
-                self.last_write_moment.update(now);
-            }
-            UpdatePartitionReadMoment::UpdateIfElementIsFound(now) => {
-                if found_element {
-                    self.last_write_moment.update(now);
-                }
-            }
-            UpdatePartitionReadMoment::None => {}
-        }
+    pub fn update_last_read_moment(&self, now: DateTimeAsMicroseconds) {
+        self.last_write_moment.update(now);
     }
 
     pub fn get_last_write_moment(&self) -> DateTimeAsMicroseconds {
