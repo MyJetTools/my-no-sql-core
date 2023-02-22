@@ -4,7 +4,7 @@ version = "0.1.3-rc01"
 edition = "2021"
 
 [features]
-default = ["master_node"]
+default = []
 master_node = []
 
 
