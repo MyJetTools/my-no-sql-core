@@ -5,6 +5,7 @@ mod update_partition_expiration_time_queue;
 mod update_partitions_last_read_time_queue;
 mod update_rows_expiration_time_queue;
 mod update_rows_last_read_time_queue;
+pub use sync_to_main_node_event::*;
 pub use update_partition_expiration_time_queue::*;
 pub use update_partitions_last_read_time_queue::*;
 pub use update_rows_expiration_time_queue::*;
