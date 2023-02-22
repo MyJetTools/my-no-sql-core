@@ -33,10 +33,6 @@ impl UpdateRowsExpirationTimeQueue {
             .iter_mut()
             .find(|itm| itm.table_name == table_name && itm.partition_key == partition_key)
         {
-            if item.expiration_time.unix_microseconds < date_time.unix_microseconds {
-                item.expiration_time = date_time;
-            }
-
             for row_key in row_keys {
                 item.row_keys.insert(row_key.to_string(), ());
             }
