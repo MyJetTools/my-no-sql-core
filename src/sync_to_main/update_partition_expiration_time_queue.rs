@@ -5,7 +5,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 #[derive(Debug, Clone)]
 pub struct UpdatePartitionExpirationEvent {
     pub table_name: String,
-    pub partitions: HashMap<String, DateTimeAsMicroseconds>,
+    pub partitions: HashMap<String, Option<DateTimeAsMicroseconds>>,
 }
 
 pub struct UpdatePartitionsExpirationTimeQueue {
@@ -23,7 +23,7 @@ impl UpdatePartitionsExpirationTimeQueue {
         &mut self,
         table_name: &str,
         partition_key: &str,
-        date_time: DateTimeAsMicroseconds,
+        date_time: Option<DateTimeAsMicroseconds>,
     ) {
         if let Some(item) = self
             .queue

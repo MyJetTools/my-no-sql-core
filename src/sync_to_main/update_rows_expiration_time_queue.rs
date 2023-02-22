@@ -7,7 +7,7 @@ pub struct UpdateRowsExpirationTimeEvent {
     pub table_name: String,
     pub partition_key: String,
     pub row_keys: HashMap<String, ()>,
-    pub expiration_time: DateTimeAsMicroseconds,
+    pub expiration_time: Option<DateTimeAsMicroseconds>,
 }
 
 pub struct UpdateRowsExpirationTimeQueue {
@@ -26,7 +26,7 @@ impl UpdateRowsExpirationTimeQueue {
         table_name: &str,
         partition_key: &str,
         row_keys: TRowKeys,
-        date_time: DateTimeAsMicroseconds,
+        date_time: Option<DateTimeAsMicroseconds>,
     ) {
         if let Some(item) = self
             .queue

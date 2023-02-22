@@ -114,7 +114,7 @@ impl<DataReaderTcpConnection: Send + Sync + 'static> SyncToMainNodeQueues<DataRe
         &self,
         table_name: &str,
         partition_key: &str,
-        date_time: DateTimeAsMicroseconds,
+        date_time: Option<DateTimeAsMicroseconds>,
     ) {
         let mut inner = self.inner.lock().await;
 
@@ -130,7 +130,7 @@ impl<DataReaderTcpConnection: Send + Sync + 'static> SyncToMainNodeQueues<DataRe
         table_name: &str,
         partition_key: &str,
         row_keys: TRowKeys,
-        date_time: DateTimeAsMicroseconds,
+        date_time: Option<DateTimeAsMicroseconds>,
     ) {
         let mut inner = self.inner.lock().await;
         inner
