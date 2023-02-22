@@ -5,7 +5,7 @@ pub use db_table::DbTableAttributes;
 
 pub use db_partition::*;
 
-pub use db_row::DbRow;
+pub use db_row::*;
 
 mod db_partition;
 

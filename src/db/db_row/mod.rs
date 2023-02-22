@@ -1,3 +1,3 @@
 mod db_row;
 
-pub use db_row::DbRow;
+pub use db_row::*;

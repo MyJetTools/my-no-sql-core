@@ -12,7 +12,7 @@ use super::DbRowsContainer;
 
 pub struct DbPartition {
     #[cfg(feature = "master_node")]
-    pub expires: Option<DateTimeAsMicroseconds>,
+    pub expires: Option<rust_extensions::date_time::DateTimeAsMicroseconds>,
     pub rows: DbRowsContainer,
     #[cfg(feature = "master_node")]
     pub last_read_moment: AtomicDateTimeAsMicroseconds,
@@ -36,7 +36,10 @@ impl DbPartition {
     }
 
     #[cfg(feature = "master_node")]
-    pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<String>> {
+    pub fn get_rows_to_expire(
+        &self,
+        now: rust_extensions::date_time::DateTimeAsMicroseconds,
+    ) -> Option<Vec<String>> {
         self.rows.get_rows_to_expire(now)
     }
 
@@ -165,11 +168,11 @@ impl DbPartition {
 
 #[cfg(feature = "master_node")]
 impl DbPartition {
-    pub fn update_last_read_moment(&self, now: DateTimeAsMicroseconds) {
+    pub fn update_last_read_moment(&self, now: rust_extensions::date_time::DateTimeAsMicroseconds) {
         self.last_write_moment.update(now);
     }
 
-    pub fn get_last_write_moment(&self) -> DateTimeAsMicroseconds {
+    pub fn get_last_write_moment(&self) -> rust_extensions::date_time::DateTimeAsMicroseconds {
         self.last_write_moment.as_date_time()
     }
 

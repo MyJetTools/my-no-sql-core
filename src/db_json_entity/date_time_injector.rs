@@ -1,15 +1,8 @@
-use super::JsonTimeStamp;
-
-pub struct TimeStampValuePosition {
-    pub key_start: usize,
-    pub key_end: usize,
-    pub value_start: usize,
-    pub value_end: usize,
-}
+use super::{JsonKeyValuePosition, JsonTimeStamp};
 
 pub fn replace_timestamp_value(
     raw: &[u8],
-    time_stamp_position: &TimeStampValuePosition,
+    time_stamp_position: &JsonKeyValuePosition,
     json_time_stamp: &JsonTimeStamp,
 ) -> Vec<u8> {
     let timestamp_value = format!("{dq}{val}{dq}", dq = '"', val = json_time_stamp.as_str());
@@ -74,7 +67,7 @@ fn get_the_end_of_the_json(data: &[u8]) -> usize {
 mod tests {
 
     use crate::db_json_entity::{
-        date_time_injector::TimeStampValuePosition, json_time_stamp::JsonTimeStamp,
+        date_time_injector::JsonKeyValuePosition, json_time_stamp::JsonTimeStamp,
     };
 
     #[test]
@@ -117,7 +110,7 @@ mod tests {
 
         let value_start = src_json.find("null").unwrap();
 
-        let ts_value_position = TimeStampValuePosition {
+        let ts_value_position = JsonKeyValuePosition {
             key_start,
             key_end: key_start + super::super::consts::TIME_STAMP.len() + 2,
             value_start,
@@ -154,7 +147,7 @@ mod tests {
 
         let value_start = src_json.find(replace_string).unwrap();
 
-        let ts_value_position = TimeStampValuePosition {
+        let ts_value_position = JsonKeyValuePosition {
             key_start,
             key_end: key_start + super::super::consts::TIME_STAMP.len() + 2,
             value_start,

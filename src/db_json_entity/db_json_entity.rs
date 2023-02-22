@@ -4,8 +4,9 @@ use my_json::json_reader::array_parser::ArrayToJsonObjectsSplitter;
 
 use std::{collections::BTreeMap, sync::Arc};
 
+use super::DbEntityParseFail;
+use super::JsonKeyValuePosition;
 use super::JsonTimeStamp;
-use super::{date_time_injector::TimeStampValuePosition, DbEntityParseFail};
 use my_json::json_reader::JsonFirstLineReader;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -14,8 +15,9 @@ pub struct DbJsonEntity<'s> {
     pub row_key: &'s str,
     pub expires: Option<DateTimeAsMicroseconds>,
     pub time_stamp: Option<&'s str>,
-    timestamp_value_position: Option<TimeStampValuePosition>,
-    raw: &'s [u8],
+    timestamp_value_position: Option<JsonKeyValuePosition>,
+    pub expires_value_position: Option<JsonKeyValuePosition>,
+    pub raw: &'s [u8],
 }
 
 impl<'s> DbJsonEntity<'s> {
@@ -25,6 +27,7 @@ impl<'s> DbJsonEntity<'s> {
         let mut expires = None;
         let mut time_stamp = None;
         let mut timestamp_value_position = None;
+        let mut expires_value_position = None;
 
         for line in JsonFirstLineReader::new(raw) {
             let line = line?;
@@ -41,12 +44,18 @@ impl<'s> DbJsonEntity<'s> {
 
             if name == super::consts::EXPIRES {
                 expires = line.get_value()?.as_date_time();
+                expires_value_position = Some(JsonKeyValuePosition {
+                    key_start: line.name_start,
+                    key_end: line.name_end,
+                    value_start: line.value_start,
+                    value_end: line.value_end,
+                });
             }
 
             if name == super::consts::TIME_STAMP
                 || name.to_lowercase() == super::consts::TIME_STAMP_LOWER_CASE
             {
-                timestamp_value_position = Some(TimeStampValuePosition {
+                timestamp_value_position = Some(JsonKeyValuePosition {
                     key_start: line.name_start,
                     key_end: line.name_end,
                     value_start: line.value_start,
@@ -90,22 +99,21 @@ impl<'s> DbJsonEntity<'s> {
             expires,
             time_stamp,
             timestamp_value_position,
+            expires_value_position,
         };
 
         return Ok(result);
     }
 
-    pub fn to_db_row(&self, inject_time_stamp: &JsonTimeStamp) -> DbRow {
+    pub fn new_db_row(&self, inject_time_stamp: &JsonTimeStamp) -> DbRow {
         let data =
             compile_row_content(self.raw, &self.timestamp_value_position, &inject_time_stamp);
 
         return DbRow::new(
-            self.partition_key.to_string(),
-            self.row_key.to_string(),
+            self,
             data,
             #[cfg(feature = "master_node")]
-            self.expires,
-            &inject_time_stamp,
+            inject_time_stamp,
         );
     }
 
@@ -116,12 +124,12 @@ impl<'s> DbJsonEntity<'s> {
             JsonTimeStamp::now()
         };
 
+        let data = self.raw.to_vec();
+
         return DbRow::new(
-            self.partition_key.to_string(),
-            self.row_key.to_string(),
-            self.raw.to_vec(),
+            self,
+            data,
             #[cfg(feature = "master_node")]
-            self.expires,
             &time_stamp,
         );
     }
@@ -134,7 +142,7 @@ impl<'s> DbJsonEntity<'s> {
 
         for json in src.split_array_json_to_objects() {
             let db_entity = DbJsonEntity::parse(json?)?;
-            let db_row = db_entity.to_db_row(inject_time_stamp);
+            let db_row = db_entity.new_db_row(inject_time_stamp);
 
             result.push(Arc::new(db_row));
         }
@@ -161,7 +169,7 @@ impl<'s> DbJsonEntity<'s> {
 
         for json in src.split_array_json_to_objects() {
             let db_entity = DbJsonEntity::parse(json?)?;
-            let db_row = db_entity.to_db_row(inject_time_stamp);
+            let db_row = db_entity.new_db_row(inject_time_stamp);
 
             if !result.contains_key(db_entity.partition_key) {
                 result.insert(db_entity.partition_key.to_string(), Vec::new());
@@ -201,7 +209,7 @@ impl<'s> DbJsonEntity<'s> {
 
 fn compile_row_content(
     raw: &[u8],
-    time_stamp_value_position: &Option<TimeStampValuePosition>,
+    time_stamp_value_position: &Option<JsonKeyValuePosition>,
     time_stamp: &JsonTimeStamp,
 ) -> Vec<u8> {
     if let Some(time_stamp_value_position) = time_stamp_value_position {
@@ -236,6 +244,21 @@ mod tests {
         let expires = entity.expires.as_ref().unwrap();
 
         assert_eq!("2022-03-17T13:28:29.653747", &expires.to_rfc3339()[..26]);
+
+        let expires_value_position = entity.expires_value_position.unwrap();
+
+        let expires_key =
+            &src_json.as_bytes()[expires_value_position.key_start..expires_value_position.key_end];
+
+        assert_eq!("\"Expires\"", std::str::from_utf8(expires_key).unwrap());
+
+        let expires_value = &src_json.as_bytes()
+            [expires_value_position.value_start..expires_value_position.value_end];
+
+        assert_eq!(
+            "\"2022-03-17T13:28:29.6537478Z\"",
+            std::str::from_utf8(expires_value).unwrap()
+        );
     }
 
     #[test]
@@ -261,7 +284,7 @@ mod tests {
         let result = DbJsonEntity::parse(src_json.as_bytes()).unwrap();
 
         let time_stamp = JsonTimeStamp::now();
-        let db_row = result.to_db_row(&time_stamp);
+        let db_row = result.new_db_row(&time_stamp);
 
         println!("{:?}", std::str::from_utf8(db_row.data.as_slice()).unwrap());
     }

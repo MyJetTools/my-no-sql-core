@@ -1,14 +1,17 @@
 #[cfg(feature = "master_node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db_json_entity::JsonTimeStamp;
+use crate::db_json_entity::{DbJsonEntity, JsonKeyValuePosition, JsonTimeStamp};
 
 pub struct DbRow {
     pub partition_key: String,
     pub row_key: String,
     pub data: Vec<u8>,
     #[cfg(feature = "master_node")]
-    expires: std::sync::atomic::AtomicI64,
+    pub expires: Option<DateTimeAsMicroseconds>,
+    #[cfg(feature = "master_node")]
+    pub expires_json_position: Option<JsonKeyValuePosition>,
 
     pub time_stamp: String,
     #[cfg(feature = "master_node")]
@@ -17,53 +20,22 @@ pub struct DbRow {
 
 impl DbRow {
     pub fn new(
-        partition_key: String,
-        row_key: String,
+        db_json_entity: &DbJsonEntity,
         data: Vec<u8>,
-        #[cfg(feature = "master_node")] expires: Option<
-            rust_extensions::date_time::DateTimeAsMicroseconds,
-        >,
-
-        time_stamp: &JsonTimeStamp,
+        #[cfg(feature = "master_node")] time_stamp: &JsonTimeStamp,
     ) -> Self {
-        #[cfg(feature = "master_node")]
-        let last_read_access =
-            AtomicDateTimeAsMicroseconds::new(time_stamp.date_time.unix_microseconds);
-
         Self {
-            partition_key,
-            row_key,
+            partition_key: db_json_entity.partition_key.to_string(),
+            row_key: db_json_entity.row_key.to_string(),
             data,
-            #[cfg(feature = "master_node")]
-            expires: std::sync::atomic::AtomicI64::new(expires_to_i64(expires)),
             time_stamp: time_stamp.as_str().to_string(),
             #[cfg(feature = "master_node")]
-            last_read_access,
-        }
-    }
-
-    pub fn restore(
-        partition_key: String,
-        row_key: String,
-        data: Vec<u8>,
-        #[cfg(feature = "master_node")] expires: Option<
-            rust_extensions::date_time::DateTimeAsMicroseconds,
-        >,
-
-        time_stamp: String,
-    ) -> Self {
-        #[cfg(feature = "master_node")]
-        let last_read_access = AtomicDateTimeAsMicroseconds::now();
-
-        Self {
-            partition_key,
-            row_key,
-            data,
+            expires: db_json_entity.expires,
+            expires_json_position: db_json_entity.expires_value_position.clone(),
             #[cfg(feature = "master_node")]
-            expires: std::sync::atomic::AtomicI64::new(expires_to_i64(expires)),
-            time_stamp,
-            #[cfg(feature = "master_node")]
-            last_read_access,
+            last_read_access: AtomicDateTimeAsMicroseconds::new(
+                time_stamp.date_time.unix_microseconds,
+            ),
         }
     }
 
@@ -73,40 +45,39 @@ impl DbRow {
     }
 
     #[cfg(feature = "master_node")]
-    pub fn get_expires(&self) -> Option<rust_extensions::date_time::DateTimeAsMicroseconds> {
-        let result = self.expires.load(std::sync::atomic::Ordering::Relaxed);
-
-        if result == NULL_EXPIRES {
-            return None;
-        }
-
-        return Some(rust_extensions::date_time::DateTimeAsMicroseconds::new(
-            result,
-        ));
-    }
-
-    #[cfg(feature = "master_node")]
-    pub fn update_expires(
+    pub fn create_with_new_expiration_time(
         &self,
-        expires: Option<rust_extensions::date_time::DateTimeAsMicroseconds>,
-    ) {
-        self.expires
-            .store(expires_to_i64(expires), std::sync::atomic::Ordering::SeqCst);
-    }
-}
-
-#[cfg(feature = "master_node")]
-const NULL_EXPIRES: i64 = 0;
-
-#[cfg(feature = "master_node")]
-fn expires_to_i64(expires: Option<rust_extensions::date_time::DateTimeAsMicroseconds>) -> i64 {
-    if let Some(expires) = expires {
-        if expires.unix_microseconds == NULL_EXPIRES {
-            return NULL_EXPIRES + 1;
+        expiration_time: Option<DateTimeAsMicroseconds>,
+    ) -> DbRow {
+        if let Some(expiration_time) = expiration_time {
+            let value = expiration_time.to_rfc3339();
+            let (data, exp_position) = crate::db_json_entity::compile_data_with_new_expires(
+                self,
+                &value[0..value.len() - 1],
+            );
+            DbRow {
+                partition_key: self.partition_key.to_string(),
+                row_key: self.row_key.to_string(),
+                data,
+                expires: Some(expiration_time),
+                expires_json_position: Some(exp_position),
+                time_stamp: self.time_stamp.to_string(),
+                last_read_access: AtomicDateTimeAsMicroseconds::new(
+                    self.last_read_access.get_unix_microseconds(),
+                ),
+            }
+        } else {
+            DbRow {
+                partition_key: self.partition_key.to_string(),
+                row_key: self.row_key.to_string(),
+                data: crate::db_json_entity::remove_expiration_time(self),
+                expires: None,
+                expires_json_position: None,
+                time_stamp: self.time_stamp.to_string(),
+                last_read_access: AtomicDateTimeAsMicroseconds::new(
+                    self.last_read_access.get_unix_microseconds(),
+                ),
+            }
         }
-
-        return expires.unix_microseconds;
     }
-
-    NULL_EXPIRES
 }

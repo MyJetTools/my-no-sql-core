@@ -360,7 +360,7 @@ impl DbTable {
 #[cfg(feature = "master_node")]
 #[cfg(test)]
 mod tests {
-    use crate::db_json_entity::JsonTimeStamp;
+    use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
 
     use super::*;
 
@@ -378,19 +378,20 @@ mod tests {
 
         let now = JsonTimeStamp::now();
 
-        let db_row = DbRow::new(
-            "partitionKey".to_string(),
-            "rowKey".to_string(),
-            vec![0u8, 1u8, 2u8],
-            None,
-            &now,
-        );
+        let test_json = r#"{
+            "PartitionKey": "test",
+            "RowKey": "test",
+        }"#;
+
+        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+
+        let db_row = db_json_entity.new_db_row(&now);
 
         let db_row = Arc::new(db_row);
 
         db_table.insert_row(&db_row);
 
-        assert_eq!(db_table.get_table_size(), 3);
+        assert_eq!(db_table.get_table_size(), db_row.data.len());
         assert_eq!(db_table.get_partitions_amount(), 1);
     }
 
@@ -408,31 +409,34 @@ mod tests {
 
         let now = JsonTimeStamp::now();
 
-        let db_row = DbRow::new(
-            "partitionKey".to_string(),
-            "rowKey".to_string(),
-            vec![0u8, 1u8, 2u8],
-            None,
-            &now,
-        );
+        let test_json = r#"{
+            "PartitionKey": "test",
+            "RowKey": "test",
+        }"#;
+
+        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
+
+        let db_row = db_json_entity.new_db_row(&now);
 
         let db_row = Arc::new(db_row);
 
         db_table.insert_row(&db_row);
 
-        let db_row = DbRow::new(
-            "partitionKey".to_string(),
-            "rowKey".to_string(),
-            vec![0u8, 1u8, 2u8, 3u8],
-            None,
-            &now,
-        );
+        let test_json = r#"{
+            "PartitionKey": "test",
+            "RowKey": "test",
+            "AAA": "111"
+        }"#;
 
-        let db_row = Arc::new(db_row);
+        let db_json_entity = DbJsonEntity::parse(test_json.as_bytes()).unwrap();
 
-        db_table.insert_or_replace_row(&db_row);
+        let db_row2 = db_json_entity.new_db_row(&now);
 
-        assert_eq!(db_table.get_table_size(), 4);
+        let db_row2 = Arc::new(db_row2);
+
+        db_table.insert_or_replace_row(&db_row2);
+
+        assert_eq!(db_table.get_table_size(), db_row2.data.len());
         assert_eq!(db_table.get_partitions_amount(), 1);
     }
 }
