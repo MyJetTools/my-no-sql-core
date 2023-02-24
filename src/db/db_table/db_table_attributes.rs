@@ -34,7 +34,12 @@ impl DbTableAttributes {
         }
     }
 
-    pub fn update(&mut self, persist_table: bool, max_partitions_amount: Option<usize>) -> bool {
+    pub fn update(
+        &mut self,
+        persist_table: bool,
+        max_partitions_amount: Option<usize>,
+        max_rows_per_partition_amount: Option<usize>,
+    ) -> bool {
         let mut result = false;
 
         if self.persist != persist_table {
@@ -44,6 +49,11 @@ impl DbTableAttributes {
 
         if self.max_partitions_amount != max_partitions_amount {
             self.max_partitions_amount = max_partitions_amount;
+            result = true;
+        }
+
+        if self.max_rows_per_partition_amount != max_rows_per_partition_amount {
+            self.max_rows_per_partition_amount = max_rows_per_partition_amount;
             result = true;
         }
 
