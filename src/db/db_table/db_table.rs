@@ -6,12 +6,12 @@ use std::{
     sync::Arc,
 };
 
-#[cfg(feature = "master_node")]
+#[cfg(feature = "master-node")]
 use std::collections::HashMap;
 
 use crate::db::{DbPartition, DbRow};
 
-#[cfg(feature = "master_node")]
+#[cfg(feature = "master-node")]
 use super::DbTableAttributes;
 
 pub type TPartitions = BTreeMap<String, DbPartition>;
@@ -21,24 +21,24 @@ pub struct DbTable {
     pub partitions: TPartitions,
     pub last_read_time: AtomicDateTimeAsMicroseconds,
     pub last_update_time: DateTimeAsMicroseconds,
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub attributes: DbTableAttributes,
 }
 
 impl DbTable {
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub fn new(name: String, attributes: DbTableAttributes) -> Self {
         Self {
             name,
             partitions: BTreeMap::new(),
             last_read_time: AtomicDateTimeAsMicroseconds::new(attributes.created.unix_microseconds),
             last_update_time: DateTimeAsMicroseconds::now(),
-            #[cfg(feature = "master_node")]
+            #[cfg(feature = "master-node")]
             attributes,
         }
     }
 
-    #[cfg(not(feature = "master_node"))]
+    #[cfg(not(feature = "master-node"))]
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -48,7 +48,7 @@ impl DbTable {
         }
     }
 
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub fn get_partitions_to_expire(&self, max_amount: usize) -> Option<Vec<String>> {
         if self.partitions.len() <= max_amount {
             return None;
@@ -81,7 +81,7 @@ impl DbTable {
         self.partitions.len()
     }
 
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub fn get_expiration_index_rows_amount(&self) -> usize {
         let mut result = 0;
 
@@ -145,7 +145,7 @@ impl DbTable {
         json_array_writer.into()
     }
 
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub fn get_partitions_last_write_moment(&self) -> HashMap<String, DateTimeAsMicroseconds> {
         let mut result = HashMap::new();
 
@@ -292,7 +292,7 @@ impl DbTable {
         return Some((removed_rows, partition_is_empty));
     }
 
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     fn get_partitions_to_gc(&self, max_partitions_amount: usize) -> Option<BTreeMap<i64, String>> {
         if self.partitions.len() <= max_partitions_amount {
             return None;
@@ -309,7 +309,7 @@ impl DbTable {
         Some(partitions_to_gc)
     }
 
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub fn gc_and_keep_max_partitions_amount(
         &mut self,
         max_partitions_amount: usize,
@@ -357,7 +357,7 @@ impl DbTable {
     }
 }
 
-#[cfg(feature = "master_node")]
+#[cfg(feature = "master-node")]
 #[cfg(test)]
 mod tests {
     use crate::db_json_entity::{DbJsonEntity, JsonTimeStamp};
@@ -366,14 +366,9 @@ mod tests {
 
     #[test]
     fn test_insert_record() {
-        let now = DateTimeAsMicroseconds::now();
         let mut db_table = DbTable::new(
             "test-table".to_string(),
-            DbTableAttributes {
-                persist: true,
-                max_partitions_amount: None,
-                created: now,
-            },
+            DbTableAttributes::create_default(),
         );
 
         let now = JsonTimeStamp::now();
@@ -397,14 +392,9 @@ mod tests {
 
     #[test]
     fn test_insert_and_insert_or_replace() {
-        let now = DateTimeAsMicroseconds::now();
         let mut db_table = DbTable::new(
             "test-table".to_string(),
-            DbTableAttributes {
-                persist: true,
-                max_partitions_amount: None,
-                created: now,
-            },
+            DbTableAttributes::create_default(),
         );
 
         let now = JsonTimeStamp::now();

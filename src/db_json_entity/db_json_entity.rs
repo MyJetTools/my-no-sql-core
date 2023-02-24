@@ -112,7 +112,7 @@ impl<'s> DbJsonEntity<'s> {
         return DbRow::new(
             self,
             data,
-            #[cfg(feature = "master_node")]
+            #[cfg(feature = "master-node")]
             inject_time_stamp,
         );
     }
@@ -129,7 +129,7 @@ impl<'s> DbJsonEntity<'s> {
         return DbRow::new(
             self,
             data,
-            #[cfg(feature = "master_node")]
+            #[cfg(feature = "master-node")]
             &time_stamp,
         );
     }

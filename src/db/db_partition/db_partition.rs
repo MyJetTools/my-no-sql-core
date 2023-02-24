@@ -1,7 +1,7 @@
 use my_json::json_writer::JsonArrayWriter;
 use rust_extensions::lazy::LazyVec;
 
-#[cfg(feature = "master_node")]
+#[cfg(feature = "master-node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 
 use crate::db::DbRow;
@@ -11,12 +11,12 @@ use std::{collections::btree_map::Values, sync::Arc};
 use super::DbRowsContainer;
 
 pub struct DbPartition {
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub expires: Option<rust_extensions::date_time::DateTimeAsMicroseconds>,
     pub rows: DbRowsContainer,
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub last_read_moment: AtomicDateTimeAsMicroseconds,
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub last_write_moment: AtomicDateTimeAsMicroseconds,
     content_size: usize,
 }
@@ -25,17 +25,17 @@ impl DbPartition {
     pub fn new() -> DbPartition {
         DbPartition {
             rows: DbRowsContainer::new(),
-            #[cfg(feature = "master_node")]
+            #[cfg(feature = "master-node")]
             last_read_moment: AtomicDateTimeAsMicroseconds::now(),
-            #[cfg(feature = "master_node")]
+            #[cfg(feature = "master-node")]
             last_write_moment: AtomicDateTimeAsMicroseconds::now(),
             content_size: 0,
-            #[cfg(feature = "master_node")]
+            #[cfg(feature = "master-node")]
             expires: None,
         }
     }
 
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub fn get_rows_to_expire(
         &self,
         now: rust_extensions::date_time::DateTimeAsMicroseconds,
@@ -130,7 +130,7 @@ impl DbPartition {
         self.rows.len()
     }
 
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub fn get_expiration_index_rows_amount(&self) -> usize {
         self.rows.rows_with_expiration_index_len()
     }
@@ -166,7 +166,7 @@ impl DbPartition {
     }
 }
 
-#[cfg(feature = "master_node")]
+#[cfg(feature = "master-node")]
 impl DbPartition {
     pub fn update_last_read_moment(&self, now: rust_extensions::date_time::DateTimeAsMicroseconds) {
         self.last_write_moment.update(now);

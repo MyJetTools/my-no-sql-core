@@ -4,6 +4,7 @@ use rust_extensions::date_time::DateTimeAsMicroseconds;
 pub struct DbTableAttributes {
     pub persist: bool,
     pub max_partitions_amount: Option<usize>,
+    pub max_rows_per_partition_amount: Option<usize>,
     pub created: DateTimeAsMicroseconds,
 }
 
@@ -13,6 +14,7 @@ impl DbTableAttributes {
             created: DateTimeAsMicroseconds::now(),
             persist: true,
             max_partitions_amount: None,
+            max_rows_per_partition_amount: None,
         }
     }
 }
@@ -21,12 +23,14 @@ impl DbTableAttributes {
     pub fn new(
         persist: bool,
         max_partitions_amount: Option<usize>,
+        max_rows_per_partition_amount: Option<usize>,
         created: DateTimeAsMicroseconds,
     ) -> Self {
         Self {
             persist,
             created,
             max_partitions_amount,
+            max_rows_per_partition_amount,
         }
     }
 

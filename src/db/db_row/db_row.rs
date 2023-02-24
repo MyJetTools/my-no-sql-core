@@ -1,4 +1,4 @@
-#[cfg(feature = "master_node")]
+#[cfg(feature = "master-node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
@@ -8,13 +8,13 @@ pub struct DbRow {
     pub partition_key: String,
     pub row_key: String,
     pub data: Vec<u8>,
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub expires: Option<DateTimeAsMicroseconds>,
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub expires_json_position: Option<JsonKeyValuePosition>,
 
     pub time_stamp: String,
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub last_read_access: AtomicDateTimeAsMicroseconds,
 }
 
@@ -22,29 +22,29 @@ impl DbRow {
     pub fn new(
         db_json_entity: &DbJsonEntity,
         data: Vec<u8>,
-        #[cfg(feature = "master_node")] time_stamp: &JsonTimeStamp,
+        #[cfg(feature = "master-node")] time_stamp: &JsonTimeStamp,
     ) -> Self {
         Self {
             partition_key: db_json_entity.partition_key.to_string(),
             row_key: db_json_entity.row_key.to_string(),
             data,
             time_stamp: time_stamp.as_str().to_string(),
-            #[cfg(feature = "master_node")]
+            #[cfg(feature = "master-node")]
             expires: db_json_entity.expires,
             expires_json_position: db_json_entity.expires_value_position.clone(),
-            #[cfg(feature = "master_node")]
+            #[cfg(feature = "master-node")]
             last_read_access: AtomicDateTimeAsMicroseconds::new(
                 time_stamp.date_time.unix_microseconds,
             ),
         }
     }
 
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub fn update_last_read_access(&self, now: rust_extensions::date_time::DateTimeAsMicroseconds) {
         self.last_read_access.update(now);
     }
 
-    #[cfg(feature = "master_node")]
+    #[cfg(feature = "master-node")]
     pub fn create_with_new_expiration_time(
         &self,
         expiration_time: Option<DateTimeAsMicroseconds>,
