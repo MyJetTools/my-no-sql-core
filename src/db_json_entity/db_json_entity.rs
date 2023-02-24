@@ -118,6 +118,7 @@ impl<'s> DbJsonEntity<'s> {
     }
 
     pub fn restore_db_row(&self) -> DbRow {
+        #[cfg(feature = "master-node")]
         let time_stamp = if let Some(time_stamp) = self.time_stamp {
             JsonTimeStamp::parse_or_now(time_stamp)
         } else {

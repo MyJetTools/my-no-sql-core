@@ -1,8 +1,9 @@
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
+#[cfg(feature = "master-node")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-use crate::db_json_entity::{DbJsonEntity, JsonKeyValuePosition, JsonTimeStamp};
+use crate::db_json_entity::DbJsonEntity;
 
 pub struct DbRow {
     pub partition_key: String,
@@ -11,8 +12,8 @@ pub struct DbRow {
     #[cfg(feature = "master-node")]
     pub expires: Option<DateTimeAsMicroseconds>,
     #[cfg(feature = "master-node")]
-    pub expires_json_position: Option<JsonKeyValuePosition>,
-
+    pub expires_json_position: Option<crate::db_json_entity::JsonKeyValuePosition>,
+    #[cfg(feature = "master-node")]
     pub time_stamp: String,
     #[cfg(feature = "master-node")]
     pub last_read_access: AtomicDateTimeAsMicroseconds,
@@ -22,15 +23,17 @@ impl DbRow {
     pub fn new(
         db_json_entity: &DbJsonEntity,
         data: Vec<u8>,
-        #[cfg(feature = "master-node")] time_stamp: &JsonTimeStamp,
+        #[cfg(feature = "master-node")] time_stamp: &crate::db_json_entity::JsonTimeStamp,
     ) -> Self {
         Self {
             partition_key: db_json_entity.partition_key.to_string(),
             row_key: db_json_entity.row_key.to_string(),
             data,
+            #[cfg(feature = "master-node")]
             time_stamp: time_stamp.as_str().to_string(),
             #[cfg(feature = "master-node")]
             expires: db_json_entity.expires,
+            #[cfg(feature = "master-node")]
             expires_json_position: db_json_entity.expires_value_position.clone(),
             #[cfg(feature = "master-node")]
             last_read_access: AtomicDateTimeAsMicroseconds::new(
