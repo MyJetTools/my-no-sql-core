@@ -26,6 +26,12 @@ impl DbPartitionsContainer {
     pub fn get_partitions(&self) -> Values<String, DbPartition> {
         self.partitions.values()
     }
+
+    pub fn get_partitions_mut(
+        &mut self,
+    ) -> std::collections::btree_map::ValuesMut<String, DbPartition> {
+        self.partitions.values_mut()
+    }
     #[cfg(feature = "master-node")]
     pub fn get_partitions_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<&String>> {
         self.partitions_to_expire_index.get_items_to_expire(now)
