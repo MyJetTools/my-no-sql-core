@@ -108,9 +108,9 @@ impl DbPartitionsContainer {
         let mut partitions_to_gc = BTreeMap::new();
 
         for (partition_key, partition) in &self.partitions {
-            let last_read_access = partition.get_last_access().unix_microseconds;
+            let last_read_access = partition.get_last_read_moment();
 
-            partitions_to_gc.insert(last_read_access, partition_key);
+            partitions_to_gc.insert(last_read_access.unix_microseconds, partition_key);
         }
 
         let amount_to_gc = self.partitions.len() - max_partitions_amount;

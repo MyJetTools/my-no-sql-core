@@ -9,8 +9,10 @@ impl DbTable {
         Self {
             name,
             partitions: DbPartitionsContainer::new(),
-            last_read_time: AtomicDateTimeAsMicroseconds::new(attributes.created.unix_microseconds),
-            last_update_time: DateTimeAsMicroseconds::now(),
+            last_read_moment: AtomicDateTimeAsMicroseconds::new(
+                attributes.created.unix_microseconds,
+            ),
+            last_write_moment: DateTimeAsMicroseconds::now(),
             attributes,
         }
     }
@@ -118,7 +120,7 @@ mod tests {
 
         let db_row = Arc::new(db_row);
 
-        db_table.insert_row(&db_row);
+        db_table.insert_row(&db_row, None);
 
         assert_eq!(db_table.get_table_size(), db_row.data.len());
         assert_eq!(db_table.get_partitions_amount(), 1);
@@ -144,7 +146,7 @@ mod tests {
 
         let db_row = Arc::new(db_row);
 
-        db_table.insert_row(&db_row);
+        db_table.insert_row(&db_row, None);
 
         let test_json = r#"{
             "PartitionKey": "test",
@@ -158,7 +160,7 @@ mod tests {
 
         let db_row2 = Arc::new(db_row2);
 
-        db_table.insert_or_replace_row(&db_row2);
+        db_table.insert_or_replace_row(&db_row2, None);
 
         assert_eq!(db_table.get_table_size(), db_row2.data.len());
         assert_eq!(db_table.get_partitions_amount(), 1);

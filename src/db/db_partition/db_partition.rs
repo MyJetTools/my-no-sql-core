@@ -17,7 +17,7 @@ pub struct DbPartition {
     #[cfg(feature = "master-node")]
     pub last_read_moment: AtomicDateTimeAsMicroseconds,
     #[cfg(feature = "master-node")]
-    pub last_write_moment: AtomicDateTimeAsMicroseconds,
+    pub last_write_moment: rust_extensions::date_time::DateTimeAsMicroseconds,
     content_size: usize,
 }
 
@@ -28,7 +28,7 @@ impl DbPartition {
             #[cfg(feature = "master-node")]
             last_read_moment: AtomicDateTimeAsMicroseconds::now(),
             #[cfg(feature = "master-node")]
-            last_write_moment: AtomicDateTimeAsMicroseconds::now(),
+            last_write_moment: rust_extensions::date_time::DateTimeAsMicroseconds::now(),
             content_size: 0,
             #[cfg(feature = "master-node")]
             expires: None,
@@ -135,8 +135,6 @@ impl DbPartition {
         self.rows.rows_with_expiration_index_len()
     }
 
-    //TODO - Продолжить ревьювить content рассчет Content Size
-
     pub fn get_row(&self, row_key: &str) -> Option<&Arc<DbRow>> {
         let result = self.rows.get(row_key);
         result
@@ -169,68 +167,14 @@ impl DbPartition {
 #[cfg(feature = "master-node")]
 impl DbPartition {
     pub fn update_last_read_moment(&self, now: rust_extensions::date_time::DateTimeAsMicroseconds) {
-        self.last_write_moment.update(now);
+        self.last_read_moment.update(now);
     }
 
     pub fn get_last_write_moment(&self) -> rust_extensions::date_time::DateTimeAsMicroseconds {
-        self.last_write_moment.as_date_time()
+        self.last_write_moment
     }
 
-    pub fn gc_rows(&mut self, max_rows_amount: usize) -> Option<Vec<Arc<DbRow>>> {
-        use crate::utils::SortedDictionary;
-
-        if self.rows.len() == 0 {
-            return None;
-        }
-
-        let mut partitions_by_date_time: SortedDictionary<i64, String> = SortedDictionary::new();
-
-        for db_row in &mut self.rows.get_all() {
-            let mut last_access = db_row.last_read_access.as_date_time();
-
-            let last_access_before_insert = last_access;
-
-            while partitions_by_date_time.contains_key(&last_access.unix_microseconds) {
-                last_access.unix_microseconds += 1;
-            }
-
-            partitions_by_date_time
-                .insert(last_access.unix_microseconds, db_row.row_key.to_string());
-
-            if last_access_before_insert.unix_microseconds != last_access.unix_microseconds {
-                db_row.last_read_access.update(last_access);
-            }
-        }
-
-        let mut gced = None;
-
-        while self.rows.len() > max_rows_amount {
-            let (dt, row_key) = partitions_by_date_time.first().unwrap();
-
-            let removed_result = self.rows.remove(&row_key);
-
-            if let Some(db_row) = removed_result {
-                if gced.is_none() {
-                    gced = Some(Vec::new())
-                }
-
-                gced.as_mut().unwrap().push(db_row);
-            }
-
-            partitions_by_date_time.remove(&dt);
-        }
-
-        gced
-    }
-
-    pub fn get_last_access(&self) -> rust_extensions::date_time::DateTimeAsMicroseconds {
-        let last_read_moment = self.last_read_moment.as_date_time();
-        let last_write_access = self.last_write_moment.as_date_time();
-
-        if last_read_moment.unix_microseconds > last_write_access.unix_microseconds {
-            return last_read_moment;
-        }
-
-        return last_write_access;
+    pub fn get_last_read_moment(&self) -> rust_extensions::date_time::DateTimeAsMicroseconds {
+        self.last_read_moment.as_date_time()
     }
 }
