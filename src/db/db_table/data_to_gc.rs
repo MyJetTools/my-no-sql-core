@@ -58,4 +58,18 @@ impl DataToGc {
             false
         }
     }
+
+    pub fn has_data_to_gc(&self) -> bool {
+        self.inner.is_some()
+    }
+
+    pub fn get_partitions_to_gc(&self) -> Option<&BTreeMap<String, ()>> {
+        let inner = self.inner.as_ref()?;
+        Some(&inner.partitions)
+    }
+
+    pub fn get_rows_to_gc(&self) -> Option<&BTreeMap<String, Vec<Arc<DbRow>>>> {
+        let inner = self.inner.as_ref()?;
+        Some(&inner.db_rows)
+    }
 }

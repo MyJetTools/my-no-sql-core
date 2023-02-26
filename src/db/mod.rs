@@ -1,7 +1,7 @@
 pub use db_table::DbTable;
 
 #[cfg(feature = "master-node")]
-pub use db_table::DbTableAttributes;
+pub use db_table::{DataToGc, DbTableAttributes};
 
 pub use db_partition::*;
 
