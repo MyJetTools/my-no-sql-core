@@ -1,8 +1,8 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 pub struct DataToGceInner {
-    pub partitions: BTreeMap<String, ()>,
-    pub db_rows: BTreeMap<String, Vec<String>>,
+    pub partitions: HashMap<String, ()>,
+    pub db_rows: HashMap<String, Vec<String>>,
 }
 
 pub struct DataToGc {
@@ -17,8 +17,8 @@ impl DataToGc {
     fn get_inner(&mut self) -> &mut DataToGceInner {
         if self.inner.is_none() {
             self.inner = Some(DataToGceInner {
-                partitions: BTreeMap::new(),
-                db_rows: BTreeMap::new(),
+                partitions: HashMap::new(),
+                db_rows: HashMap::new(),
             });
         }
         self.inner.as_mut().unwrap()
@@ -67,12 +67,12 @@ impl DataToGc {
         self.inner.is_some()
     }
 
-    pub fn get_partitions_to_gc(&self) -> Option<&BTreeMap<String, ()>> {
+    pub fn get_partitions_to_gc(&self) -> Option<&HashMap<String, ()>> {
         let inner = self.inner.as_ref()?;
         Some(&inner.partitions)
     }
 
-    pub fn get_rows_to_gc(&self) -> Option<&BTreeMap<String, Vec<String>>> {
+    pub fn get_rows_to_gc(&self) -> Option<&HashMap<String, Vec<String>>> {
         let inner = self.inner.as_ref()?;
         Some(&inner.db_rows)
     }
