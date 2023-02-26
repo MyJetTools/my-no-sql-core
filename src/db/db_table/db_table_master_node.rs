@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use rust_extensions::date_time::{AtomicDateTimeAsMicroseconds, DateTimeAsMicroseconds};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 use super::{DataToGc, DbPartitionsContainer, DbTable, DbTableAttributes};
 
@@ -9,9 +9,6 @@ impl DbTable {
         Self {
             name,
             partitions: DbPartitionsContainer::new(),
-            last_read_moment: AtomicDateTimeAsMicroseconds::new(
-                attributes.created.unix_microseconds,
-            ),
             last_write_moment: DateTimeAsMicroseconds::now(),
             attributes,
         }

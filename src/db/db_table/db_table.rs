@@ -1,7 +1,5 @@
 use my_json::json_writer::JsonArrayWriter;
 #[cfg(feature = "master-node")]
-use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
-#[cfg(feature = "master-node")]
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 use std::{
     collections::{btree_map::Values, BTreeMap},
@@ -18,8 +16,6 @@ pub struct DbTable {
     pub name: String,
     pub partitions: DbPartitionsContainer,
     #[cfg(feature = "master-node")]
-    pub last_read_moment: AtomicDateTimeAsMicroseconds,
-    #[cfg(feature = "master-node")]
     pub last_write_moment: DateTimeAsMicroseconds,
     #[cfg(feature = "master-node")]
     pub attributes: DbTableAttributes,
@@ -31,8 +27,6 @@ impl DbTable {
         Self {
             name,
             partitions: DbPartitionsContainer::new(),
-            #[cfg(feature = "master-node")]
-            last_read_moment: AtomicDateTimeAsMicroseconds::now(),
         }
     }
 
