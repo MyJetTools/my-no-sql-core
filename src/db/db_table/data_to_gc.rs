@@ -2,13 +2,13 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use crate::db::DbRow;
 
-pub struct DataToExpireInner {
+pub struct DataToGceInner {
     pub partitions: BTreeMap<String, ()>,
     pub db_rows: BTreeMap<String, Vec<Arc<DbRow>>>,
 }
 
 pub struct DataToGc {
-    inner: Option<DataToExpireInner>,
+    inner: Option<DataToGceInner>,
 }
 
 impl DataToGc {
@@ -16,9 +16,9 @@ impl DataToGc {
         Self { inner: None }
     }
 
-    fn get_inner(&mut self) -> &mut DataToExpireInner {
+    fn get_inner(&mut self) -> &mut DataToGceInner {
         if self.inner.is_none() {
-            self.inner = Some(DataToExpireInner {
+            self.inner = Some(DataToGceInner {
                 partitions: BTreeMap::new(),
                 db_rows: BTreeMap::new(),
             });
@@ -71,5 +71,9 @@ impl DataToGc {
     pub fn get_rows_to_gc(&self) -> Option<&BTreeMap<String, Vec<Arc<DbRow>>>> {
         let inner = self.inner.as_ref()?;
         Some(&inner.db_rows)
+    }
+
+    pub fn get_data_to_gc(self) -> Option<DataToGceInner> {
+        self.inner
     }
 }
