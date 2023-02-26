@@ -39,7 +39,7 @@ impl DbPartition {
     pub fn get_rows_to_expire(
         &self,
         now: rust_extensions::date_time::DateTimeAsMicroseconds,
-    ) -> Option<Vec<Arc<DbRow>>> {
+    ) -> Option<Vec<&Arc<DbRow>>> {
         self.rows.get_rows_to_expire(now)
     }
 

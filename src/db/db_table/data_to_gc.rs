@@ -1,10 +1,8 @@
-use std::{collections::BTreeMap, sync::Arc};
-
-use crate::db::DbRow;
+use std::collections::BTreeMap;
 
 pub struct DataToGceInner {
     pub partitions: BTreeMap<String, ()>,
-    pub db_rows: BTreeMap<String, Vec<Arc<DbRow>>>,
+    pub db_rows: BTreeMap<String, Vec<String>>,
 }
 
 pub struct DataToGc {
@@ -36,7 +34,11 @@ impl DataToGc {
         inner.partitions.insert(partition_key.to_string(), ());
     }
 
-    pub fn add_rows_to_expire(&mut self, partition_key: &str, rows: Vec<Arc<DbRow>>) {
+    pub fn add_rows_to_expire<'s, TRows: Iterator<Item = String>>(
+        &mut self,
+        partition_key: &str,
+        rows: TRows,
+    ) {
         let inner = self.get_inner();
 
         if inner.partitions.contains_key(partition_key) {
@@ -44,7 +46,9 @@ impl DataToGc {
         }
 
         if !inner.db_rows.contains_key(partition_key) {
-            inner.db_rows.insert(partition_key.to_string(), rows);
+            inner
+                .db_rows
+                .insert(partition_key.to_string(), rows.collect());
             return;
         }
 
@@ -68,7 +72,7 @@ impl DataToGc {
         Some(&inner.partitions)
     }
 
-    pub fn get_rows_to_gc(&self) -> Option<&BTreeMap<String, Vec<Arc<DbRow>>>> {
+    pub fn get_rows_to_gc(&self) -> Option<&BTreeMap<String, Vec<String>>> {
         let inner = self.inner.as_ref()?;
         Some(&inner.db_rows)
     }

@@ -62,7 +62,10 @@ impl DbTable {
             }
 
             if let Some(rows_to_expire) = db_partition.get_rows_to_expire(now) {
-                result.add_rows_to_expire(partition_key, rows_to_expire);
+                result.add_rows_to_expire(
+                    partition_key,
+                    rows_to_expire.iter().map(|itm| itm.row_key.to_string()),
+                );
             }
 
             //Find DBRows to GC by max amount
@@ -71,7 +74,10 @@ impl DbTable {
                     .rows
                     .get_rows_to_gc_by_max_amount(max_rows_per_partition)
                 {
-                    result.add_rows_to_expire(partition_key, rows_to_gc);
+                    result.add_rows_to_expire(
+                        partition_key,
+                        rows_to_gc.iter().map(|itm| itm.row_key.to_string()),
+                    );
                 }
             }
         }
