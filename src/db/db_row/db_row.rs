@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 #[cfg(feature = "master-node")]
 use rust_extensions::date_time::AtomicDateTimeAsMicroseconds;
 #[cfg(feature = "master-node")]
@@ -82,5 +84,11 @@ impl DbRow {
                 ),
             }
         }
+    }
+}
+
+impl crate::ExpirationItemsAreSame<Arc<DbRow>> for Arc<DbRow> {
+    fn are_same(&self, other_one: &Arc<DbRow>) -> bool {
+        self.row_key == other_one.row_key
     }
 }

@@ -19,6 +19,17 @@ impl JsonTimeStamp {
         }
     }
 
+    pub fn from_date_time(date_time: DateTimeAsMicroseconds) -> Self {
+        let str_value = date_time.to_rfc3339();
+        let index = find_end_of_the_string(&str_value);
+
+        Self {
+            str_value,
+            index,
+            date_time,
+        }
+    }
+
     pub fn parse_or_now(src: &str) -> Self {
         let dt = parse_iso_string(src.as_bytes());
 

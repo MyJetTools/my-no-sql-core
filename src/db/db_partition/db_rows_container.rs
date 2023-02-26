@@ -1,13 +1,10 @@
+#[cfg(feature = "master-node")]
+use rust_extensions::date_time::DateTimeAsMicroseconds;
+use rust_extensions::lazy::LazyVec;
 use std::{
     collections::{btree_map::Values, BTreeMap},
     sync::Arc,
 };
-
-#[cfg(feature = "master-node")]
-use rust_extensions::date_time::DateTimeAsMicroseconds;
-use rust_extensions::lazy::LazyVec;
-#[cfg(feature = "master-node")]
-use std::collections::HashMap;
 
 use crate::db::DbRow;
 
@@ -15,7 +12,7 @@ pub struct DbRowsContainer {
     data: BTreeMap<String, Arc<DbRow>>,
 
     #[cfg(feature = "master-node")]
-    rows_with_expiration_index: BTreeMap<i64, HashMap<String, Arc<DbRow>>>,
+    rows_with_expiration_index: crate::ExpirationIndex<Arc<DbRow>>,
 }
 
 impl DbRowsContainer {
@@ -23,7 +20,7 @@ impl DbRowsContainer {
         Self {
             data: BTreeMap::new(),
             #[cfg(feature = "master-node")]
-            rows_with_expiration_index: BTreeMap::new(),
+            rows_with_expiration_index: crate::ExpirationIndex::new(),
         }
     }
 
@@ -35,99 +32,46 @@ impl DbRowsContainer {
     pub fn rows_with_expiration_index_len(&self) -> usize {
         self.rows_with_expiration_index.len()
     }
+    #[cfg(feature = "master-node")]
+    pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<Arc<DbRow>>> {
+        self.rows_with_expiration_index
+            .get_items_to_expire_cloned(now)
+    }
 
     #[cfg(feature = "master-node")]
-    pub fn get_rows_to_expire(&self, now: DateTimeAsMicroseconds) -> Option<Vec<String>> {
-        let mut keys = LazyVec::new();
-        for expiration_time in self.rows_with_expiration_index.keys() {
-            if *expiration_time > now.unix_microseconds {
-                break;
-            }
-
-            keys.add(*expiration_time);
+    pub fn get_rows_to_gc_by_max_amount(&self, max_rows_amount: usize) -> Option<Vec<Arc<DbRow>>> {
+        if self.data.len() <= max_rows_amount {
+            return None;
         }
 
-        let keys = keys.get_result()?;
+        let mut by_last_read_access = BTreeMap::new();
 
-        let mut result = Vec::new();
-        for key in &keys {
-            if let Some(removed) = self.rows_with_expiration_index.get(key) {
-                for (_, db_row) in removed {
-                    result.push(db_row.row_key.to_string());
-                }
-            }
+        for db_row in self.data.values() {
+            let last_read_access = db_row.last_read_access.get_unix_microseconds();
+            by_last_read_access.insert(last_read_access, db_row.clone());
+        }
+
+        let max_records_amount = self.data.len() - max_rows_amount;
+
+        let mut result = Vec::with_capacity(max_records_amount);
+
+        for db_row in self.data.values().take(max_records_amount) {
+            result.push(db_row.clone());
         }
 
         Some(result)
     }
 
-    #[cfg(feature = "master-node")]
-    fn insert_expiration_index(&mut self, db_row: &Arc<DbRow>) {
-        if db_row.expires.is_none() {
-            return;
-        }
-
-        let expires = db_row.expires.unwrap();
-
-        if !self
-            .rows_with_expiration_index
-            .contains_key(&expires.unix_microseconds)
-        {
-            self.rows_with_expiration_index
-                .insert(expires.unix_microseconds, HashMap::new());
-        }
-
-        if let Some(index_data) = self
-            .rows_with_expiration_index
-            .get_mut(&expires.unix_microseconds)
-        {
-            index_data.insert(db_row.row_key.to_string(), db_row.clone());
-        }
-    }
-
-    #[cfg(feature = "master-node")]
-    fn remove_expiration_index(&mut self, db_row: &Arc<DbRow>) {
-        if db_row.expires.is_none() {
-            return;
-        }
-
-        let expires = db_row.expires.unwrap();
-
-        let remove_root_index = if let Some(index_data) = self
-            .rows_with_expiration_index
-            .get_mut(&expires.unix_microseconds)
-        {
-            index_data.remove(&db_row.row_key);
-            index_data.len() == 0
-        } else {
-            false
-        };
-
-        if remove_root_index {
-            self.rows_with_expiration_index
-                .remove(&expires.unix_microseconds);
-        }
-    }
-
-    #[cfg(feature = "master-node")]
-    fn insert_indices(&mut self, db_row: &Arc<DbRow>) {
-        self.insert_expiration_index(&db_row);
-    }
-
-    #[cfg(feature = "master-node")]
-    fn remove_indices(&mut self, db_row: &Arc<DbRow>) {
-        self.remove_expiration_index(&db_row);
-    }
-
     pub fn insert(&mut self, db_row: Arc<DbRow>) -> Option<Arc<DbRow>> {
         #[cfg(feature = "master-node")]
-        self.insert_indices(&db_row);
+        self.rows_with_expiration_index.add(db_row.expires, &db_row);
 
         let result = self.data.insert(db_row.row_key.to_string(), db_row);
 
         #[cfg(feature = "master-node")]
         if let Some(removed_db_row) = &result {
-            self.remove_indices(&removed_db_row);
+            self.rows_with_expiration_index
+                .remove(removed_db_row.expires, &removed_db_row);
         }
 
         result
@@ -138,7 +82,8 @@ impl DbRowsContainer {
 
         #[cfg(feature = "master-node")]
         if let Some(removed_db_row) = &result {
-            self.remove_indices(&removed_db_row);
+            self.rows_with_expiration_index
+                .remove(removed_db_row.expires, &removed_db_row);
         }
 
         result
@@ -199,13 +144,16 @@ impl DbRowsContainer {
         }
 
         let removed_db_row = self.data.remove(row_key)?;
-        self.remove_expiration_index(&removed_db_row);
 
         let new_db_row = removed_db_row.create_with_new_expiration_time(expiration_time);
 
         let new_db_row = Arc::new(new_db_row);
 
-        self.insert_expiration_index(&new_db_row);
+        self.rows_with_expiration_index.update(
+            removed_db_row.expires,
+            new_db_row.expires,
+            &new_db_row,
+        );
 
         self.data.insert(row_key.to_string(), new_db_row);
 
@@ -294,7 +242,12 @@ mod tests {
 
         db_rows.update_expiration_time("test", Some(new_expiration_time));
 
-        assert_eq!(true, db_rows.rows_with_expiration_index.contains_key(&2));
+        assert_eq!(
+            true,
+            db_rows
+                .rows_with_expiration_index
+                .has_data_with_expiration_moment(2)
+        );
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
     }
 
@@ -321,13 +274,18 @@ mod tests {
             true,
             db_rows
                 .rows_with_expiration_index
-                .contains_key(&current_expiration.unix_microseconds)
+                .has_data_with_expiration_moment(current_expiration.unix_microseconds)
         );
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
 
         db_rows.update_expiration_time("test", Some(DateTimeAsMicroseconds::new(2)));
 
-        assert_eq!(true, db_rows.rows_with_expiration_index.contains_key(&2));
+        assert_eq!(
+            true,
+            db_rows
+                .rows_with_expiration_index
+                .has_data_with_expiration_moment(2)
+        );
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
     }
 
@@ -353,7 +311,7 @@ mod tests {
             true,
             db_rows
                 .rows_with_expiration_index
-                .contains_key(&current_expiration.unix_microseconds)
+                .has_data_with_expiration_moment(current_expiration.unix_microseconds)
         );
         assert_eq!(1, db_rows.rows_with_expiration_index.len());
 
@@ -381,7 +339,7 @@ mod tests {
         let mut now = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
         now.unix_microseconds -= 1;
 
-        let rows_to_expire = db_rows.get_rows_to_expire(now);
+        let rows_to_expire = db_rows.rows_with_expiration_index.get_items_to_expire(now);
 
         assert_eq!(true, rows_to_expire.is_none());
     }
@@ -405,8 +363,83 @@ mod tests {
 
         let now = DateTimeAsMicroseconds::from_str("2019-01-01T00:00:00").unwrap();
 
-        let rows_to_expire = db_rows.get_rows_to_expire(now);
+        let rows_to_expire = db_rows.rows_with_expiration_index.get_items_to_expire(now);
 
         assert_eq!(true, rows_to_expire.is_some());
+    }
+
+    #[test]
+    fn check_gc_max_rows_amount() {
+        let mut db_rows = DbRowsContainer::new();
+
+        let mut now = DateTimeAsMicroseconds::now();
+
+        let db_json_entity = DbJsonEntity::parse(
+            r#"{
+            "PartitionKey": "test",
+            "RowKey": "test1",
+        }"#
+            .as_bytes(),
+        )
+        .unwrap();
+
+        let db_row = Arc::new(db_json_entity.new_db_row(&JsonTimeStamp::from_date_time(now)));
+
+        db_rows.insert(db_row.clone());
+
+        // Next Item
+
+        now.add_seconds(1);
+
+        let db_json_entity = DbJsonEntity::parse(
+            r#"{
+            "PartitionKey": "test",
+            "RowKey": "test2",
+        }"#
+            .as_bytes(),
+        )
+        .unwrap();
+
+        let db_row = Arc::new(db_json_entity.new_db_row(&JsonTimeStamp::from_date_time(now)));
+
+        db_rows.insert(db_row.clone());
+
+        // Next Item
+
+        now.add_seconds(1);
+
+        let db_json_entity = DbJsonEntity::parse(
+            r#"{
+                    "PartitionKey": "test",
+                    "RowKey": "test3",
+                }"#
+            .as_bytes(),
+        )
+        .unwrap();
+
+        let db_row = Arc::new(db_json_entity.new_db_row(&JsonTimeStamp::from_date_time(now)));
+
+        db_rows.insert(db_row.clone());
+
+        // Next Item
+
+        now.add_seconds(1);
+
+        let db_json_entity = DbJsonEntity::parse(
+            r#"{
+                            "PartitionKey": "test",
+                            "RowKey": "test4",
+                        }"#
+            .as_bytes(),
+        )
+        .unwrap();
+
+        let db_row = Arc::new(db_json_entity.new_db_row(&JsonTimeStamp::from_date_time(now)));
+
+        db_rows.insert(db_row.clone());
+
+        let db_rows_to_gc = db_rows.get_rows_to_gc_by_max_amount(3).unwrap();
+
+        assert_eq!("test1", &db_rows_to_gc.get(0).unwrap().row_key);
     }
 }
