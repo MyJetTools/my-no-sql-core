@@ -1,4 +1,4 @@
-use rust_extensions::date_time::{utils::parse_iso_string, DateTimeAsMicroseconds};
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
 pub struct JsonTimeStamp {
     str_value: String,
@@ -31,10 +31,9 @@ impl JsonTimeStamp {
     }
 
     pub fn parse_or_now(src: &str) -> Self {
-        let dt = parse_iso_string(src.as_bytes());
+        let dt = DateTimeAsMicroseconds::parse_iso_string(src);
 
-        let result = if let Some(dt) = dt {
-            let result = DateTimeAsMicroseconds::new(dt);
+        let result = if let Some(result) = dt {
             let str_value = src.to_string();
             (result, str_value)
         } else {
